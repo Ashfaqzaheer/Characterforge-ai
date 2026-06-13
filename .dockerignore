@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env.docker
+coverage
+.DS_Store
+*.log
+.kiro
+.vscode
