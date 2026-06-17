@@ -121,7 +121,7 @@ export default function CharacterDetailPage({
   }
 
   if (authLoading || loading) {
-    return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-zinc-500">Loading...</p></div></>);
+    return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-[var(--text-muted)]">Loading...</p></div></>);
   }
   if (!character) return null;
 
@@ -142,21 +142,21 @@ export default function CharacterDetailPage({
   return (
     <>
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 py-8 w-full">
+      <main className="max-w-3xl mx-auto px-4 py-8 w-full animate-in">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">{character.name}</h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-1">{character.description}</p>
+          <h1 className="text-2xl font-bold text-white">{character.name}</h1>
+          <p className="text-[var(--text-secondary)] mt-1">{character.description}</p>
         </div>
 
         {/* Character Memory */}
         {memoryFields.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">Character Memory</h2>
+          <section className="depth-card p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-3 text-white">Character Memory</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {memoryFields.map((f) => (
-                <div key={f.label} className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                  <span className="text-xs text-zinc-500">{f.label}</span>
-                  <p className="text-sm">{f.value}</p>
+                <div key={f.label} className="p-2 rounded-[var(--radius-md)] bg-[var(--surface-card)] border border-[var(--border-default)]">
+                  <span className="text-xs text-[var(--text-muted)]">{f.label}</span>
+                  <p className="text-sm text-[var(--text-primary)]">{f.value}</p>
                 </div>
               ))}
             </div>
@@ -165,15 +165,15 @@ export default function CharacterDetailPage({
 
         {/* Reference Images */}
         {character.images.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">Reference Images</h2>
+          <section className="depth-card p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-3 text-white">Reference Images</h2>
             <div className="flex gap-3 flex-wrap">
               {character.images.map((img) => (
-                <div key={img.id} className="w-32 h-32 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+                <div key={img.id} className="w-32 h-32 rounded-[var(--radius-md)] border border-[var(--border-default)] overflow-hidden bg-[var(--surface-card)]">
                   {imageUrls[img.id] ? (
                     <img src={imageUrls[img.id]} alt={`Reference: ${img.filename}`} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-zinc-400">Loading...</div>
+                    <div className="w-full h-full flex items-center justify-center text-xs text-[var(--text-muted)]">Loading...</div>
                   )}
                 </div>
               ))}
@@ -182,19 +182,19 @@ export default function CharacterDetailPage({
         )}
 
         {/* Generation Form */}
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-3">Generate Scene</h2>
+        <section className="depth-card p-6 mb-8">
+          <h2 className="text-lg font-semibold mb-3 text-white">Generate Scene</h2>
 
           {/* Scene Templates */}
-          <div className="mb-3">
-            <p className="text-xs text-zinc-500 mb-2">Quick templates:</p>
+          <div className="mb-4">
+            <p className="text-xs text-[var(--text-muted)] mb-2">Quick templates:</p>
             <div className="flex flex-wrap gap-2">
               {SCENE_TEMPLATES.map((template) => (
                 <button
                   key={template}
                   type="button"
                   onClick={() => setPrompt(template)}
-                  className="px-3 py-1 text-xs rounded-full border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="glass-card px-3 py-1 text-xs rounded-[var(--radius-full)] text-[var(--text-secondary)]"
                 >
                   {template}
                 </button>
@@ -202,32 +202,32 @@ export default function CharacterDetailPage({
             </div>
           </div>
 
-          <form onSubmit={handleGenerate} className="space-y-3">
+          <form onSubmit={handleGenerate} className="space-y-4">
             {genError && (
-              <div role="alert" className="p-3 text-sm text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
+              <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
                 {genError}
               </div>
             )}
             <div>
-              <label htmlFor="prompt" className="block text-sm font-medium mb-1">Scene Prompt</label>
+              <label htmlFor="prompt" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Scene Prompt</label>
               <textarea id="prompt" required maxLength={500} rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 resize-none"
+                className="input-field resize-none"
                 placeholder="Describe the scene..." />
-              <p className="text-xs text-zinc-500 mt-1">{prompt.length}/500</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">{prompt.length}/500</p>
             </div>
             {/* Aspect Ratio Selector */}
             <div>
-              <label className="block text-sm font-medium mb-2">Aspect Ratio</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Aspect Ratio</label>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                 {ASPECT_RATIOS.map((ar) => (
                   <button
                     key={ar.value}
                     type="button"
                     onClick={() => setAspectRatio(ar.value)}
-                    className={`p-2 rounded-lg border text-center transition-colors ${
+                    className={`glass-card p-2 rounded-[var(--radius-md)] text-center transition-all ${
                       aspectRatio === ar.value
-                        ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black"
-                        : "border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        ? "bg-[var(--brand-primary)] border-[var(--brand-primary)] text-white"
+                        : "text-[var(--text-secondary)]"
                     }`}
                   >
                     <span className="block text-sm font-medium">{ar.label}</span>
@@ -236,8 +236,7 @@ export default function CharacterDetailPage({
                 ))}
               </div>
             </div>
-            <button type="submit" disabled={generating}
-              className="h-10 rounded-lg bg-foreground text-background px-5 font-medium text-sm hover:opacity-90 disabled:opacity-50">
+            <button type="submit" disabled={generating} className="btn-primary">
               {generating ? "Generating..." : "Generate"}
             </button>
           </form>
@@ -245,9 +244,9 @@ export default function CharacterDetailPage({
 
         {/* Generated Image */}
         {generatedImage && (
-          <section>
-            <h2 className="text-lg font-semibold mb-3">Generated Image</h2>
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden inline-block">
+          <section className="depth-card p-6">
+            <h2 className="text-lg font-semibold mb-3 text-white">Generated Image</h2>
+            <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] overflow-hidden inline-block">
               <img src={generatedImage} alt="Generated scene" className="max-w-full max-h-96" />
             </div>
           </section>

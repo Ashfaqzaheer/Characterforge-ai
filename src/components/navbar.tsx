@@ -1,48 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "../lib/auth-context";
 
 export function Navbar() {
   const { session, signOut } = useAuth();
-  const router = useRouter();
-
-  async function handleSignOut() {
-    await signOut();
-    router.push("/login");
-  }
-
-  if (!session) return null;
 
   return (
-    <nav className="border-b border-zinc-200 dark:border-zinc-800 px-4 py-3">
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <nav className="sticky top-0 z-50 border-b border-[var(--border-default)] backdrop-blur-xl bg-[rgba(0,0,0,0.8)]">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="text-lg font-semibold tracking-tight text-white hover:text-[var(--text-secondary)] transition-colors duration-[var(--motion-fast)]">
+          CharacterForge
+        </Link>
+
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="font-semibold text-lg">
-            CharacterForge
-          </Link>
-          <div className="flex gap-4 text-sm">
-            <Link
-              href="/dashboard"
-              className="text-zinc-600 dark:text-zinc-400 hover:text-foreground"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/history"
-              className="text-zinc-600 dark:text-zinc-400 hover:text-foreground"
-            >
-              History
-            </Link>
-          </div>
+          {session ? (
+            <>
+              <Link href="/dashboard" className="text-sm text-[var(--text-secondary)] hover:text-white transition-colors duration-[var(--motion-instant)]">
+                Dashboard
+              </Link>
+              <Link href="/history" className="text-sm text-[var(--text-secondary)] hover:text-white transition-colors duration-[var(--motion-instant)]">
+                History
+              </Link>
+              <button
+                onClick={signOut}
+                className="text-sm text-[var(--text-muted)] hover:text-white transition-colors duration-[var(--motion-instant)]"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-[var(--text-secondary)] hover:text-white transition-colors duration-[var(--motion-instant)]">
+                Sign in
+              </Link>
+              <Link href="/register" className="btn-primary text-xs py-2 px-5">
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
-        <button
-          onClick={handleSignOut}
-          className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-foreground"
-        >
-          Sign out
-        </button>
       </div>
     </nav>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowser } from "../../lib/supabase-browser";
+import { Navbar } from "../../components/navbar";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -83,91 +84,104 @@ export default function ResetPasswordPage() {
 
   if (sessionError) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4">
-        <div className="w-full max-w-sm space-y-6 text-center">
-          <h1 className="text-2xl font-bold">Invalid or expired link</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            This password reset link is invalid or has expired.
-          </p>
-          <Link href="/forgot-password" className="inline-flex h-9 items-center rounded-lg bg-foreground px-4 text-background text-sm font-medium hover:opacity-90">
-            Request a new link
-          </Link>
-        </div>
-      </div>
+      <>
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center px-6 py-16 relative glow-accent">
+          <div className="w-full max-w-sm animate-in">
+            <div className="depth-card p-8 text-center">
+              <h1 className="text-[24px] font-bold text-white">Invalid or expired link</h1>
+              <p className="text-sm text-[var(--text-muted)] mt-2">
+                This password reset link is invalid or has expired.
+              </p>
+              <Link href="/forgot-password" className="btn-primary inline-block mt-6">
+                Request a new link
+              </Link>
+            </div>
+          </div>
+        </main>
+      </>
     );
   }
 
   if (!sessionReady) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4">
-        <p className="text-zinc-500">Verifying reset link...</p>
-      </div>
+      <>
+        <Navbar />
+        <div className="flex flex-1 items-center justify-center px-4">
+          <p className="text-[var(--text-muted)]">Verifying reset link...</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Set new password</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Enter your new password below
-          </p>
-        </div>
-
-        {success ? (
-          <div className="space-y-4">
-            <div className="p-4 text-sm text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 rounded-lg">
-              Password updated successfully. Redirecting to sign in...
+    <>
+      <Navbar />
+      <main className="flex-1 flex items-center justify-center px-6 py-16 relative glow-accent">
+        <div className="w-full max-w-sm animate-in">
+          <div className="depth-card p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-[24px] font-bold text-white">Set new password</h1>
+              <p className="text-sm text-[var(--text-muted)] mt-2">
+                Enter your new password below
+              </p>
             </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div role="alert" className="p-3 text-sm text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
-                {error}
+
+            {success ? (
+              <div className="space-y-4">
+                <div className="p-4 text-sm text-green-400 bg-green-900/20 border border-green-800/30 rounded-[var(--radius-md)]">
+                  Password updated successfully. Redirecting to sign in...
+                </div>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
+                    {error}
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="password" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">New Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field"
+                    placeholder="••••••••"
+                  />
+                  <p className="text-xs text-[var(--text-muted)] mt-1">Minimum 8 characters</p>
+                </div>
+
+                <div>
+                  <label htmlFor="confirm" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Confirm Password</label>
+                  <input
+                    id="confirm"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="input-field"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary w-full mt-2"
+                >
+                  {loading ? "Updating..." : "Update password"}
+                </button>
+              </form>
             )}
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">New Password</label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="••••••••"
-              />
-              <p className="text-xs text-zinc-500 mt-1">Minimum 8 characters</p>
-            </div>
-
-            <div>
-              <label htmlFor="confirm" className="block text-sm font-medium mb-1">Confirm Password</label>
-              <input
-                id="confirm"
-                type="password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-10 rounded-lg bg-foreground text-background font-medium text-sm transition-colors hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? "Updating..." : "Update password"}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+          </div>
+        </div>
+      </main>
+    </>
   );
 }

@@ -7,12 +7,7 @@ import { useAuth } from "../../lib/auth-context";
 import { apiFetch } from "../../lib/api-client";
 import { Navbar } from "../../components/navbar";
 
-interface CharacterSummary {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: string;
-}
+interface CharacterSummary { id: string; name: string; description: string; createdAt: string; }
 
 export default function DashboardPage() {
   const { session, loading: authLoading } = useAuth();
@@ -28,13 +23,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!session) { router.push("/login"); return; }
-
     async function fetchData() {
       try {
-        const [charsRes, creditsRes] = await Promise.all([
-          apiFetch("/api/characters"),
-          apiFetch("/api/credits"),
-        ]);
+        const [charsRes, creditsRes] = await Promise.all([apiFetch("/api/characters"), apiFetch("/api/credits")]);
         if (charsRes.ok) { const data = await charsRes.json(); setCharacters(data.characters ?? []); }
         if (creditsRes.ok) { const data = await creditsRes.json(); setCreditBalance(data.balance ?? 0); }
       } finally { setLoading(false); }
@@ -44,8 +35,7 @@ export default function DashboardPage() {
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    setDeleting(true);
-    setErrorMsg("");
+    setDeleting(true); setErrorMsg("");
     try {
       const res = await apiFetch(`/api/characters/${deleteTarget.id}`, { method: "DELETE" });
       if (res.ok) {
@@ -53,65 +43,60 @@ export default function DashboardPage() {
         setDeleteTarget(null);
         setSuccessMsg("Character deleted successfully");
         setTimeout(() => setSuccessMsg(""), 3000);
-      } else {
-        const data = await res.json();
-        setErrorMsg(data.error?.message || "Failed to delete character.");
-      }
-    } catch {
-      setErrorMsg("Something went wrong. Please try again.");
-    } finally {
-      setDeleting(false);
-    }
+      } else { const data = await res.json(); setErrorMsg(data.error?.message || "Failed to delete."); }
+    } catch { setErrorMsg("Something went wrong."); }
+    finally { setDeleting(false); }
   }
 
   if (authLoading || loading) {
-    return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-zinc-500">Loading...</p></div></>);
+    return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-[var(--text-muted)]">Loading...</p></div></>);
   }
 
   return (
     <>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-8 w-full">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-              Credits: <span className="font-semibold text-foreground">{creditBalance}</span>
-            </span>
-            <Link href="/characters/new"
-              className="inline-flex h-9 items-center rounded-lg bg-foreground px-4 text-background text-sm font-medium hover:opacity-90">
+      <main className="max-w-6xl mx-auto px-6 py-10 w-full animate-in">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-[50px] font-bold text-white leading-tight">Dashboard</h1>
+            <p className="text-[var(--text-secondary)] text-sm mt-1">Manage your characters and generations</p>
+          </div>
+          <div className="flex items-center gap-5">
+            <div className="glass-card px-4 py-2 text-sm">
+              <span className="text-[var(--text-muted)]">Credits:</span>{" "}
+              <span className="font-semibold text-white">{creditBalance}</span>
+            </div>
+            <Link href="/characters/new" className="btn-primary">
               New Character
             </Link>
           </div>
         </div>
 
-        {/* Success message */}
         {successMsg && (
-          <div className="mb-4 p-3 text-sm text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 rounded-lg">
+          <div className="mb-6 p-3 text-sm text-green-400 bg-green-900/20 border border-green-800/30 rounded-[var(--radius-md)] animate-in">
             {successMsg}
           </div>
         )}
 
         {characters.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
-            <p className="text-zinc-500 mb-4">No characters yet</p>
-            <Link href="/characters/new"
-              className="inline-flex h-9 items-center rounded-lg bg-foreground px-4 text-background text-sm font-medium hover:opacity-90">
+          <div className="text-center py-24 depth-card">
+            <p className="text-[var(--text-muted)] mb-4 text-lg">No characters yet</p>
+            <Link href="/characters/new" className="btn-primary">
               Create your first character
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {characters.map((char) => (
-              <div key={char.id} className="relative p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+              <div key={char.id} className="depth-card p-5 relative group">
                 <Link href={`/characters/${char.id}`} className="block">
-                  <h3 className="font-semibold mb-1 truncate pr-16">{char.name}</h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{char.description}</p>
+                  <h3 className="font-semibold text-white mb-2 truncate pr-16 text-[16px]">{char.name}</h3>
+                  <p className="text-sm text-[var(--text-secondary)] line-clamp-2 leading-relaxed">{char.description}</p>
                 </Link>
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); setDeleteTarget(char); }}
-                  className="absolute top-3 right-3 px-2 py-1 text-xs rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                  className="absolute top-4 right-4 px-2 py-1 text-xs rounded-[var(--radius-full)] border border-red-800/40 text-red-400 hover:bg-red-900/30 hover:border-red-600 transition-all duration-[var(--motion-instant)] opacity-0 group-hover:opacity-100"
                 >
                   Delete
                 </button>
@@ -122,32 +107,19 @@ export default function DashboardPage() {
 
         {/* Delete Confirmation Modal */}
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 max-w-sm w-full shadow-xl border border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-lg font-semibold mb-2">Delete this character?</h2>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="depth-card p-8 max-w-sm w-full animate-in">
+              <h2 className="text-lg font-semibold text-white mb-3">Delete this character?</h2>
+              <p className="text-sm text-[var(--text-secondary)] mb-6 leading-relaxed">
                 This will permanently remove the character, reference images, and generation history.
               </p>
               {errorMsg && (
-                <div className="mb-4 p-2 text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded">
-                  {errorMsg}
-                </div>
+                <div className="mb-4 p-2 text-xs text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-sm)]">{errorMsg}</div>
               )}
               <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => { setDeleteTarget(null); setErrorMsg(""); }}
-                  disabled={deleting}
-                  className="px-4 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                >
+                <button onClick={() => { setDeleteTarget(null); setErrorMsg(""); }} disabled={deleting} className="btn-secondary text-sm">Cancel</button>
+                <button onClick={handleDelete} disabled={deleting}
+                  className="px-5 py-2 text-sm rounded-[var(--radius-full)] bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors">
                   {deleting ? "Deleting..." : "Delete Character"}
                 </button>
               </div>

@@ -69,7 +69,7 @@ export default function HistoryPage() {
       <>
         <Navbar />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-zinc-500">Loading...</p>
+          <p className="text-[var(--text-muted)]">Loading...</p>
         </div>
       </>
     );
@@ -78,12 +78,12 @@ export default function HistoryPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-4xl mx-auto px-4 py-8 w-full">
-        <h1 className="text-2xl font-bold mb-6">Generation History</h1>
+      <main className="max-w-4xl mx-auto px-4 py-8 w-full animate-in">
+        <h1 className="text-2xl font-bold mb-6 text-white">Generation History</h1>
 
         {generations.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
-            <p className="text-zinc-500">No generations yet</p>
+          <div className="text-center py-16 border border-dashed border-[var(--border-default)] rounded-[var(--radius-lg)]">
+            <p className="text-[var(--text-muted)]">No generations yet</p>
           </div>
         ) : (
           <>
@@ -91,10 +91,10 @@ export default function HistoryPage() {
               {generations.map((gen) => (
                 <div
                   key={gen.id}
-                  className="flex gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg"
+                  className="depth-card flex gap-4 p-4"
                 >
                   {/* Thumbnail */}
-                  <div className="w-20 h-20 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-zinc-100 dark:bg-zinc-900 flex-shrink-0">
+                  <div className="w-20 h-20 rounded-[var(--radius-md)] border border-[var(--border-default)] overflow-hidden bg-[var(--surface-card)] flex-shrink-0">
                     {imageUrls[gen.id] ? (
                       <img
                         src={imageUrls[gen.id]}
@@ -102,7 +102,7 @@ export default function HistoryPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-zinc-400">
+                      <div className="w-full h-full flex items-center justify-center text-xs text-[var(--text-muted)]">
                         {gen.status === "COMPLETED" ? "..." : gen.status}
                       </div>
                     )}
@@ -110,16 +110,16 @@ export default function HistoryPage() {
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{gen.prompt}</p>
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-sm font-medium truncate text-[var(--text-primary)]">{gen.prompt}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
                       Character: {gen.character?.name ?? "Unknown"}
                     </p>
                     {gen.aspectRatio && (
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-[var(--text-muted)]">
                         Aspect Ratio: {gen.aspectRatio}
                       </p>
                     )}
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {new Date(gen.createdAt).toLocaleDateString(undefined, {
                         year: "numeric",
                         month: "short",
@@ -139,17 +139,17 @@ export default function HistoryPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="h-9 px-4 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 disabled:opacity-50 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  className="glass-card h-9 px-4 text-sm disabled:opacity-50 text-[var(--text-secondary)]"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                <span className="text-sm text-[var(--text-muted)]">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="h-9 px-4 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 disabled:opacity-50 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  className="glass-card h-9 px-4 text-sm disabled:opacity-50 text-[var(--text-secondary)]"
                 >
                   Next
                 </button>

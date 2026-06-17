@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth-context";
 import { apiFetch } from "../../../lib/api-client";
@@ -26,19 +26,24 @@ export default function NewCharacterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!authLoading && !session) {
+      router.replace("/login");
+    }
+  }, [authLoading, session, router]);
+
   if (authLoading) {
     return (
       <>
         <Navbar />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-zinc-500">Loading...</p>
+          <p className="text-[var(--text-muted)]">Loading...</p>
         </div>
       </>
     );
   }
 
   if (!session) {
-    router.push("/login");
     return null;
   }
 
@@ -106,124 +111,125 @@ export default function NewCharacterPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-2xl mx-auto px-4 py-8 w-full">
-        <h1 className="text-2xl font-bold mb-6">Create Character</h1>
+      <main className="max-w-2xl mx-auto px-4 py-8 w-full animate-in">
+        <h1 className="text-2xl font-bold mb-6 text-white">Create Character</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {errors.form && (
-            <div role="alert" className="p-3 text-sm text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
-              {errors.form}
+        <div className="depth-card p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {errors.form && (
+              <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
+                {errors.form}
+              </div>
+            )}
+
+            {/* Required fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="name" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Name *</label>
+                <input id="name" type="text" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)}
+                  className="input-field"
+                  placeholder="Character name" />
+              </div>
+              <div>
+                <label htmlFor="age" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Age</label>
+                <input id="age" type="text" maxLength={50} value={age} onChange={(e) => setAge(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. 12, young adult" />
+              </div>
             </div>
-          )}
 
-          {/* Required fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1">Name *</label>
-              <input id="name" type="text" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="Character name" />
+              <label htmlFor="description" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Description *</label>
+              <textarea id="description" required maxLength={1000} rows={3} value={description} onChange={(e) => setDescription(e.target.value)}
+                className="input-field resize-none"
+                placeholder="General character description..." />
             </div>
+
+            {/* Character Memory fields */}
+            <h2 className="text-lg font-semibold pt-2 text-white">Character Memory</h2>
+            <p className="text-xs text-[var(--text-muted)] -mt-3">These details are used in every generation to maintain consistency.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="gender" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Gender</label>
+                <input id="gender" type="text" maxLength={50} value={gender} onChange={(e) => setGender(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. female, male" />
+              </div>
+              <div>
+                <label htmlFor="eyeColor" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Eye Color</label>
+                <input id="eyeColor" type="text" maxLength={50} value={eyeColor} onChange={(e) => setEyeColor(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. blue, brown" />
+              </div>
+              <div>
+                <label htmlFor="hairDescription" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Hair</label>
+                <input id="hairDescription" type="text" maxLength={200} value={hairDescription} onChange={(e) => setHairDescription(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. long black hair with bangs" />
+              </div>
+              <div>
+                <label htmlFor="faceDescription" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Face</label>
+                <input id="faceDescription" type="text" maxLength={200} value={faceDescription} onChange={(e) => setFaceDescription(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. round face, freckles" />
+              </div>
+              <div>
+                <label htmlFor="bodyType" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Body Type</label>
+                <input id="bodyType" type="text" maxLength={100} value={bodyType} onChange={(e) => setBodyType(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. slim, athletic" />
+              </div>
+              <div>
+                <label htmlFor="style" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Art Style</label>
+                <input id="style" type="text" maxLength={200} value={style} onChange={(e) => setStyle(e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. anime, pixar, cartoon" />
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="age" className="block text-sm font-medium mb-1">Age</label>
-              <input id="age" type="text" maxLength={50} value={age} onChange={(e) => setAge(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. 12, young adult" />
+              <label htmlFor="outfit" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Outfit</label>
+              <input id="outfit" type="text" maxLength={500} value={outfit} onChange={(e) => setOutfit(e.target.value)}
+                className="input-field"
+                placeholder="e.g. blue school uniform with red tie" />
             </div>
-          </div>
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-1">Description *</label>
-            <textarea id="description" required maxLength={1000} rows={3} value={description} onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 resize-none"
-              placeholder="General character description..." />
-          </div>
-
-          {/* Character Memory fields */}
-          <h2 className="text-lg font-semibold pt-2">Character Memory</h2>
-          <p className="text-xs text-zinc-500 -mt-3">These details are used in every generation to maintain consistency.</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="gender" className="block text-sm font-medium mb-1">Gender</label>
-              <input id="gender" type="text" maxLength={50} value={gender} onChange={(e) => setGender(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. female, male" />
+              <label htmlFor="personality" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Personality</label>
+              <input id="personality" type="text" maxLength={500} value={personality} onChange={(e) => setPersonality(e.target.value)}
+                className="input-field"
+                placeholder="e.g. cheerful, shy, brave" />
             </div>
+
             <div>
-              <label htmlFor="eyeColor" className="block text-sm font-medium mb-1">Eye Color</label>
-              <input id="eyeColor" type="text" maxLength={50} value={eyeColor} onChange={(e) => setEyeColor(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. blue, brown" />
+              <label htmlFor="colorPalette" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Color Palette</label>
+              <input id="colorPalette" type="text" maxLength={200} value={colorPalette} onChange={(e) => setColorPalette(e.target.value)}
+                className="input-field"
+                placeholder="e.g. pastel blue, pink, white" />
             </div>
+
             <div>
-              <label htmlFor="hairDescription" className="block text-sm font-medium mb-1">Hair</label>
-              <input id="hairDescription" type="text" maxLength={200} value={hairDescription} onChange={(e) => setHairDescription(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. long black hair with bangs" />
+              <label htmlFor="negativePrompt" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Negative Prompt</label>
+              <textarea id="negativePrompt" maxLength={500} rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)}
+                className="input-field resize-none"
+                placeholder="Things to avoid: e.g. blurry, extra fingers, low quality" />
             </div>
+
+            {/* Reference Images */}
             <div>
-              <label htmlFor="faceDescription" className="block text-sm font-medium mb-1">Face</label>
-              <input id="faceDescription" type="text" maxLength={200} value={faceDescription} onChange={(e) => setFaceDescription(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. round face, freckles" />
+              <label htmlFor="images" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Reference Images (1-3)</label>
+              <input id="images" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleFileChange}
+                className="w-full text-sm text-[var(--text-muted)] file:mr-3 file:rounded-[var(--radius-full)] file:border file:border-[var(--border-default)] file:bg-[var(--surface-card)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[var(--text-secondary)]" />
+              {errors.files && <p className="text-xs text-red-400 mt-1">{errors.files}</p>}
+              {files.length > 0 && <p className="text-xs text-[var(--text-muted)] mt-1">{files.length} file{files.length !== 1 ? "s" : ""} selected</p>}
             </div>
-            <div>
-              <label htmlFor="bodyType" className="block text-sm font-medium mb-1">Body Type</label>
-              <input id="bodyType" type="text" maxLength={100} value={bodyType} onChange={(e) => setBodyType(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. slim, athletic" />
-            </div>
-            <div>
-              <label htmlFor="style" className="block text-sm font-medium mb-1">Art Style</label>
-              <input id="style" type="text" maxLength={200} value={style} onChange={(e) => setStyle(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                placeholder="e.g. anime, pixar, cartoon" />
-            </div>
-          </div>
 
-          <div>
-            <label htmlFor="outfit" className="block text-sm font-medium mb-1">Outfit</label>
-            <input id="outfit" type="text" maxLength={500} value={outfit} onChange={(e) => setOutfit(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-              placeholder="e.g. blue school uniform with red tie" />
-          </div>
-
-          <div>
-            <label htmlFor="personality" className="block text-sm font-medium mb-1">Personality</label>
-            <input id="personality" type="text" maxLength={500} value={personality} onChange={(e) => setPersonality(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-              placeholder="e.g. cheerful, shy, brave" />
-          </div>
-
-          <div>
-            <label htmlFor="colorPalette" className="block text-sm font-medium mb-1">Color Palette</label>
-            <input id="colorPalette" type="text" maxLength={200} value={colorPalette} onChange={(e) => setColorPalette(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-              placeholder="e.g. pastel blue, pink, white" />
-          </div>
-
-          <div>
-            <label htmlFor="negativePrompt" className="block text-sm font-medium mb-1">Negative Prompt</label>
-            <textarea id="negativePrompt" maxLength={500} rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 resize-none"
-              placeholder="Things to avoid: e.g. blurry, extra fingers, low quality" />
-          </div>
-
-          {/* Reference Images */}
-          <div>
-            <label htmlFor="images" className="block text-sm font-medium mb-1">Reference Images (1-3)</label>
-            <input id="images" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleFileChange}
-              className="w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:file:bg-zinc-800" />
-            {errors.files && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.files}</p>}
-            {files.length > 0 && <p className="text-xs text-zinc-500 mt-1">{files.length} file{files.length !== 1 ? "s" : ""} selected</p>}
-          </div>
-
-          <button type="submit" disabled={submitting}
-            className="w-full h-10 rounded-lg bg-foreground text-background font-medium text-sm transition-colors hover:opacity-90 disabled:opacity-50">
-            {submitting ? "Creating..." : "Create Character"}
-          </button>
-        </form>
+            <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">
+              {submitting ? "Creating..." : "Create Character"}
+            </button>
+          </form>
+        </div>
       </main>
     </>
   );
