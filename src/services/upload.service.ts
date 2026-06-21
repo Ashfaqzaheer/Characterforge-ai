@@ -12,7 +12,7 @@ const MIME_TO_EXT: Record<AllowedMimeType, string> = {
   "image/webp": "webp",
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_DIMENSION = 4096;
 const MAX_IMAGES_PER_CHARACTER = 3;
 

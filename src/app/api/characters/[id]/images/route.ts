@@ -4,7 +4,14 @@ import { getCharacterById, ForbiddenError } from "../../../../../services/charac
 import {
   validateAndUpload,
   UploadValidationError,
+  MAX_FILE_SIZE,
 } from "../../../../../services/upload.service";
+
+/**
+ * Maximum allowed request body size for this route.
+ * MAX_FILE_SIZE (5MB) + 64KB for multipart boundary/headers overhead.
+ */
+const MAX_REQUEST_BODY_SIZE = MAX_FILE_SIZE + 64 * 1024;
 
 /**
  * POST /api/characters/[id]/images — Upload a reference image for a character.
@@ -13,6 +20,22 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // --- Pre-check: reject obviously oversized payloads before buffering ---
+  // NOTE: Content-Length can be absent (chunked transfer) or spoofed by a malicious
+  // client. This is a cheap first-line defense, NOT a complete guarantee. The true
+  // backstop is the post-buffer size check in upload.service.ts and the platform's
+  // own body size limit (Vercel default: 4.5MB for serverless functions).
+  const contentLength = request.headers.get("content-length");
+  if (contentLength) {
+    const declaredSize = parseInt(contentLength, 10);
+    if (!isNaN(declaredSize) && declaredSize > MAX_REQUEST_BODY_SIZE) {
+      return NextResponse.json(
+        { error: { code: "FILE_TOO_LARGE", message: "File exceeds maximum allowed size of 5MB" } },
+        { status: 413 }
+      );
+    }
+  }
+
   const user = await getAuthenticatedUser(request);
   if (!user) {
     return NextResponse.json(
