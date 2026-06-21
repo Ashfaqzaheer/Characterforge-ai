@@ -90,16 +90,25 @@ export default function DashboardPage() {
             {characters.map((char) => (
               <div key={char.id} className="depth-card p-5 relative group">
                 <Link href={`/characters/${char.id}`} className="block">
-                  <h3 className="font-semibold text-white mb-2 truncate pr-16 text-[16px]">{char.name}</h3>
+                  <h3 className="font-semibold text-white mb-2 truncate pr-24 text-[16px]">{char.name}</h3>
                   <p className="text-sm text-[var(--text-secondary)] line-clamp-2 leading-relaxed">{char.description}</p>
                 </Link>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); setDeleteTarget(char); }}
-                  className="absolute top-4 right-4 px-2 py-1 text-xs rounded-[var(--radius-full)] border border-red-800/40 text-red-400 hover:bg-red-900/30 hover:border-red-600 transition-all duration-[var(--motion-instant)] opacity-0 group-hover:opacity-100"
-                >
-                  Delete
-                </button>
+                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Link
+                    href={`/characters/${char.id}/edit`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-2 py-1 text-xs rounded-[var(--radius-full)] border border-white/[0.12] text-[#81a0bb] hover:border-[#2d628c] hover:text-white transition-all"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setDeleteTarget(char); }}
+                    className="px-2 py-1 text-xs rounded-[var(--radius-full)] border border-red-800/40 text-red-400 hover:bg-red-900/30 hover:border-red-600 transition-all"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -117,3 +117,49 @@ export class ForbiddenError extends Error {
     this.name = "ForbiddenError";
   }
 }
+
+/**
+ * Updates a character's fields. Verifies ownership.
+ */
+export async function updateCharacter(
+  userId: string,
+  characterId: string,
+  data: {
+    name: string;
+    description: string;
+    age?: string;
+    gender?: string;
+    style?: string;
+    outfit?: string;
+    personality?: string;
+    negativePrompt?: string;
+    hairDescription?: string;
+    faceDescription?: string;
+    eyeColor?: string;
+    bodyType?: string;
+    colorPalette?: string;
+  }
+) {
+  const character = await prisma.character.findUnique({ where: { id: characterId } });
+  if (!character) return null;
+  if (character.userId !== userId) throw new ForbiddenError();
+
+  return prisma.character.update({
+    where: { id: characterId },
+    data: {
+      name: data.name,
+      description: data.description,
+      age: data.age || null,
+      gender: data.gender || null,
+      style: data.style || null,
+      outfit: data.outfit || null,
+      personality: data.personality || null,
+      negativePrompt: data.negativePrompt || null,
+      hairDescription: data.hairDescription || null,
+      faceDescription: data.faceDescription || null,
+      eyeColor: data.eyeColor || null,
+      bodyType: data.bodyType || null,
+      colorPalette: data.colorPalette || null,
+    },
+  });
+}
