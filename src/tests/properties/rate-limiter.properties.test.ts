@@ -23,20 +23,20 @@ describe("Property 24: Generation rate limit enforcement", () => {
     resetRateLimiter();
   });
 
-  it("the 11th generation request within a 1-hour window is rejected with retryAfter", () => {
-    fc.assert(
-      fc.property(userIdArb, (userId) => {
+  it("the 11th generation request within a 1-hour window is rejected with retryAfter", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, async (userId) => {
         resetRateLimiter();
 
         // First 10 requests should be allowed
         for (let i = 0; i < 10; i++) {
-          const result = checkLimit(userId, "generation");
+          const result = await checkLimit(userId, "generation");
           expect(result.allowed).toBe(true);
           expect(result.retryAfter).toBeUndefined();
         }
 
         // 11th request should be rejected
-        const result = checkLimit(userId, "generation");
+        const result = await checkLimit(userId, "generation");
         expect(result.allowed).toBe(false);
         expect(result.retryAfter).toBeDefined();
         expect(result.retryAfter).toBeGreaterThan(0);
@@ -50,19 +50,19 @@ describe("Property 24: Generation rate limit enforcement", () => {
     expect(RATE_LIMIT_CONFIGS.generation.windowMs).toBe(3_600_000);
   });
 
-  it("different users have independent generation rate limits", () => {
-    fc.assert(
-      fc.property(userIdArb, userIdArb, (userA, userB) => {
+  it("different users have independent generation rate limits", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, userIdArb, async (userA, userB) => {
         fc.pre(userA !== userB);
         resetRateLimiter();
 
         // Exhaust userA's limit
         for (let i = 0; i < 10; i++) {
-          checkLimit(userA, "generation");
+          await checkLimit(userA, "generation");
         }
 
         // userB should still be allowed
-        const result = checkLimit(userB, "generation");
+        const result = await checkLimit(userB, "generation");
         expect(result.allowed).toBe(true);
       }),
       { numRuns: 100 }
@@ -75,20 +75,20 @@ describe("Property 25: General API rate limit enforcement", () => {
     resetRateLimiter();
   });
 
-  it("the 61st API request within a 1-minute window is rejected with retryAfter", () => {
-    fc.assert(
-      fc.property(userIdArb, (userId) => {
+  it("the 61st API request within a 1-minute window is rejected with retryAfter", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, async (userId) => {
         resetRateLimiter();
 
         // First 60 requests should be allowed
         for (let i = 0; i < 60; i++) {
-          const result = checkLimit(userId, "general");
+          const result = await checkLimit(userId, "general");
           expect(result.allowed).toBe(true);
           expect(result.retryAfter).toBeUndefined();
         }
 
         // 61st request should be rejected
-        const result = checkLimit(userId, "general");
+        const result = await checkLimit(userId, "general");
         expect(result.allowed).toBe(false);
         expect(result.retryAfter).toBeDefined();
         expect(result.retryAfter).toBeGreaterThan(0);
@@ -102,19 +102,19 @@ describe("Property 25: General API rate limit enforcement", () => {
     expect(RATE_LIMIT_CONFIGS.general.windowMs).toBe(60_000);
   });
 
-  it("different users have independent general rate limits", () => {
-    fc.assert(
-      fc.property(userIdArb, userIdArb, (userA, userB) => {
+  it("different users have independent general rate limits", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, userIdArb, async (userA, userB) => {
         fc.pre(userA !== userB);
         resetRateLimiter();
 
         // Exhaust userA's limit
         for (let i = 0; i < 60; i++) {
-          checkLimit(userA, "general");
+          await checkLimit(userA, "general");
         }
 
         // userB should still be allowed
-        const result = checkLimit(userB, "general");
+        const result = await checkLimit(userB, "general");
         expect(result.allowed).toBe(true);
       }),
       { numRuns: 100 }
@@ -129,57 +129,57 @@ describe("Property 26: Sliding window expiry frees capacity", () => {
     vi.useFakeTimers();
   });
 
-  it("after the oldest request exits the sliding window, the next request is allowed", () => {
-    fc.assert(
-      fc.property(userIdArb, (userId) => {
+  it("after the oldest request exits the sliding window, the next request is allowed", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, async (userId) => {
         resetRateLimiter();
         vi.setSystemTime(0);
 
         // Fill up the generation limit (10 requests)
         for (let i = 0; i < 10; i++) {
-          const result = checkLimit(userId, "generation");
+          const result = await checkLimit(userId, "generation");
           expect(result.allowed).toBe(true);
         }
 
         // Verify limit is hit
-        const blocked = checkLimit(userId, "generation");
+        const blocked = await checkLimit(userId, "generation");
         expect(blocked.allowed).toBe(false);
 
         // Advance time past the window (1 hour + 1ms)
         vi.setSystemTime(RATE_LIMIT_CONFIGS.generation.windowMs + 1);
 
         // Now the request should be allowed again since all old timestamps expired
-        const freed = checkLimit(userId, "generation");
+        const freed = await checkLimit(userId, "generation");
         expect(freed.allowed).toBe(true);
       }),
       { numRuns: 100 }
     );
   });
 
-  it("partial window expiry frees exactly the expired request slots", () => {
-    fc.assert(
-      fc.property(
+  it("partial window expiry frees exactly the expired request slots", async () => {
+    await fc.assert(
+      fc.asyncProperty(
         userIdArb,
         fc.integer({ min: 1, max: 9 }),
-        (userId, earlyRequests) => {
+        async (userId, earlyRequests) => {
           resetRateLimiter();
           const windowMs = RATE_LIMIT_CONFIGS.generation.windowMs;
 
           // Make some requests at time 0
           vi.setSystemTime(0);
           for (let i = 0; i < earlyRequests; i++) {
-            checkLimit(userId, "generation");
+            await checkLimit(userId, "generation");
           }
 
           // Make remaining requests at time windowMs / 2
           vi.setSystemTime(windowMs / 2);
           const lateRequests = 10 - earlyRequests;
           for (let i = 0; i < lateRequests; i++) {
-            checkLimit(userId, "generation");
+            await checkLimit(userId, "generation");
           }
 
           // At this point, limit is full
-          const blocked = checkLimit(userId, "generation");
+          const blocked = await checkLimit(userId, "generation");
           expect(blocked.allowed).toBe(false);
 
           // Advance just past the window for the early requests
@@ -187,12 +187,12 @@ describe("Property 26: Sliding window expiry frees capacity", () => {
 
           // Now exactly earlyRequests slots should have freed up
           for (let i = 0; i < earlyRequests; i++) {
-            const result = checkLimit(userId, "generation");
+            const result = await checkLimit(userId, "generation");
             expect(result.allowed).toBe(true);
           }
 
           // But the next one should be blocked (late requests still in window)
-          const stillBlocked = checkLimit(userId, "generation");
+          const stillBlocked = await checkLimit(userId, "generation");
           expect(stillBlocked.allowed).toBe(false);
         }
       ),
@@ -200,24 +200,24 @@ describe("Property 26: Sliding window expiry frees capacity", () => {
     );
   });
 
-  it("general rate limit also recovers after window expiry", () => {
-    fc.assert(
-      fc.property(userIdArb, (userId) => {
+  it("general rate limit also recovers after window expiry", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, async (userId) => {
         resetRateLimiter();
         vi.setSystemTime(0);
 
         // Fill up the general limit
         for (let i = 0; i < 60; i++) {
-          checkLimit(userId, "general");
+          await checkLimit(userId, "general");
         }
 
-        const blocked = checkLimit(userId, "general");
+        const blocked = await checkLimit(userId, "general");
         expect(blocked.allowed).toBe(false);
 
         // Advance past the 1-minute window
         vi.setSystemTime(RATE_LIMIT_CONFIGS.general.windowMs + 1);
 
-        const freed = checkLimit(userId, "general");
+        const freed = await checkLimit(userId, "general");
         expect(freed.allowed).toBe(true);
       }),
       { numRuns: 100 }
@@ -234,21 +234,21 @@ describe("Property 27: Rate-limited requests do not deduct credits", () => {
     resetRateLimiter();
   });
 
-  it("when a generation request is rate-limited, no credit deduction occurs", () => {
-    fc.assert(
-      fc.property(
+  it("when a generation request is rate-limited, no credit deduction occurs", async () => {
+    await fc.assert(
+      fc.asyncProperty(
         userIdArb,
         fc.integer({ min: 1, max: 100 }),
-        (userId, initialBalance) => {
+        async (userId, initialBalance) => {
           resetRateLimiter();
 
           // Exhaust the generation rate limit
           for (let i = 0; i < 10; i++) {
-            checkLimit(userId, "generation");
+            await checkLimit(userId, "generation");
           }
 
           // The 11th request is rate-limited
-          const result = checkLimit(userId, "generation");
+          const result = await checkLimit(userId, "generation");
           expect(result.allowed).toBe(false);
 
           // When allowed is false, the caller (route handler) must NOT
@@ -273,16 +273,16 @@ describe("Property 27: Rate-limited requests do not deduct credits", () => {
     );
   });
 
-  it("rate limiter rejection is checked before credit deduction in the request flow", () => {
-    fc.assert(
-      fc.property(userIdArb, (userId) => {
+  it("rate limiter rejection is checked before credit deduction in the request flow", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, async (userId) => {
         resetRateLimiter();
 
         // Simulate a sequence of requests tracking the deduction gate
         let creditsDeducted = 0;
 
         for (let i = 0; i < 15; i++) {
-          const result = checkLimit(userId, "generation");
+          const result = await checkLimit(userId, "generation");
           if (result.allowed) {
             // Only deduct credits when rate limiter allows
             creditsDeducted += 1;
@@ -296,17 +296,17 @@ describe("Property 27: Rate-limited requests do not deduct credits", () => {
     );
   });
 
-  it("retryAfter value is always a positive integer when rate-limited", () => {
-    fc.assert(
-      fc.property(userIdArb, (userId) => {
+  it("retryAfter value is always a positive integer when rate-limited", async () => {
+    await fc.assert(
+      fc.asyncProperty(userIdArb, async (userId) => {
         resetRateLimiter();
 
         // Exhaust limit
         for (let i = 0; i < 10; i++) {
-          checkLimit(userId, "generation");
+          await checkLimit(userId, "generation");
         }
 
-        const result = checkLimit(userId, "generation");
+        const result = await checkLimit(userId, "generation");
         expect(result.allowed).toBe(false);
         expect(result.retryAfter).toBeDefined();
         expect(Number.isInteger(result.retryAfter)).toBe(true);

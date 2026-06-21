@@ -59,7 +59,7 @@ export async function proxy(request: NextRequest) {
     const endpoint = pathname === "/api/auth/login" ? "auth-login" : "auth-register";
     const key = `ip:${ip}:${endpoint}`;
 
-    const result = checkLimitByKey(key, endpoint);
+    const result = await checkLimitByKey(key, endpoint);
     if (!result.allowed) {
       return NextResponse.json(
         {
@@ -97,7 +97,7 @@ export async function proxy(request: NextRequest) {
   const endpoint = getRateLimitEndpoint(request.nextUrl.pathname);
 
   // Always check general rate limit
-  const generalResult = checkLimit(user.id, "general");
+  const generalResult = await checkLimit(user.id, "general");
   if (!generalResult.allowed) {
     return NextResponse.json(
       {
@@ -115,7 +115,7 @@ export async function proxy(request: NextRequest) {
 
   // For generation endpoint, also check generation-specific limit
   if (endpoint === "generation" && request.method === "POST") {
-    const genResult = checkLimit(user.id, "generation");
+    const genResult = await checkLimit(user.id, "generation");
     if (!genResult.allowed) {
       return NextResponse.json(
         {
