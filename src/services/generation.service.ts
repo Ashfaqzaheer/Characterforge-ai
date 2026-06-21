@@ -84,12 +84,8 @@ export function mapAspectRatio(ratio: string): string {
 
 // --- Errors ---
 
-export class PromptRejectedError extends Error {
-  constructor(public reason: string) {
-    super(reason);
-    this.name = "PromptRejectedError";
-  }
-}
+export { PromptRejectedError } from "../lib/errors";
+import { PromptRejectedError } from "../lib/errors";
 
 export class CharacterNotFoundError extends Error {
   constructor() {
@@ -143,6 +139,14 @@ export async function generate(
   // Build enhanced prompt using Character Memory + Scene Prompt
   const enhancedPrompt = buildCharacterPrompt(character, prompt) +
     (ASPECT_RATIO_PROMPT_SUFFIX[aspectRatio] ? `, ${ASPECT_RATIO_PROMPT_SUFFIX[aspectRatio]}` : "");
+
+  // Moderate negativePrompt (defense in depth — could have been set before moderation rules changed)
+  if (character.negativePrompt) {
+    const negMod = moderatePrompt(character.negativePrompt);
+    if (!negMod.allowed) {
+      throw new PromptRejectedError(negMod.reason!);
+    }
+  }
 
   // 2. Moderate prompt (use the enhanced version)
   const moderation = moderatePrompt(enhancedPrompt);

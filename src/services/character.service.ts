@@ -1,5 +1,9 @@
 import { prisma } from "../lib/db";
 import { deleteFile } from "../lib/r2";
+import { moderatePrompt } from "../lib/moderation";
+import { PromptRejectedError } from "../lib/errors";
+
+export { PromptRejectedError };
 
 /**
  * Creates a new character for the given user.
@@ -22,6 +26,13 @@ export async function createCharacter(
     colorPalette?: string;
   }
 ) {
+  if (data.negativePrompt) {
+    const mod = moderatePrompt(data.negativePrompt);
+    if (!mod.allowed) {
+      throw new PromptRejectedError(mod.reason!);
+    }
+  }
+
   return prisma.character.create({
     data: {
       userId,
@@ -143,6 +154,13 @@ export async function updateCharacter(
   const character = await prisma.character.findUnique({ where: { id: characterId } });
   if (!character) return null;
   if (character.userId !== userId) throw new ForbiddenError();
+
+  if (data.negativePrompt) {
+    const mod = moderatePrompt(data.negativePrompt);
+    if (!mod.allowed) {
+      throw new PromptRejectedError(mod.reason!);
+    }
+  }
 
   return prisma.character.update({
     where: { id: characterId },

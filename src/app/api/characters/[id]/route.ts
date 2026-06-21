@@ -6,6 +6,7 @@ import {
   ForbiddenError,
   getCharacterById,
   updateCharacter,
+  PromptRejectedError,
 } from "../../../../services/character.service";
 
 /**
@@ -139,6 +140,12 @@ export async function PATCH(
     }
     return NextResponse.json({ character });
   } catch (error) {
+    if (error instanceof PromptRejectedError) {
+      return NextResponse.json(
+        { error: { code: "PROMPT_REJECTED", message: error.reason } },
+        { status: 400 }
+      );
+    }
     if (error instanceof ForbiddenError) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "You do not have access to this resource" } },

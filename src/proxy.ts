@@ -1,7 +1,24 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAuthUser } from "./lib/auth";
-import { checkLimit } from "./lib/rate-limiter";
+import { checkLimit, checkLimitByKey } from "./lib/rate-limiter";
+
+/** Public auth routes that need rate limiting but NOT authentication */
+const PUBLIC_AUTH_ROUTES = ["/api/auth/login", "/api/auth/register"];
+
+/**
+ * Extracts client IP from request headers.
+ * Trusts x-forwarded-for set by the platform's reverse proxy (Vercel, Cloudflare, etc).
+ * NOTE: If self-hosting behind a different reverse proxy, ensure x-forwarded-for is
+ * stripped/overwritten at the edge to prevent IP spoofing.
+ */
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  return request.headers.get("x-real-ip") || "unknown";
+}
 
 /**
  * Determines which rate limit endpoint category applies to a request path.
@@ -27,11 +44,39 @@ export async function proxy(request: NextRequest) {
       status: 204,
       headers: {
         "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "",
-        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Max-Age": "86400",
       },
     });
+  }
+
+  const pathname = request.nextUrl.pathname;
+
+  // --- Public auth routes: rate limit by IP only, no auth required ---
+  if (PUBLIC_AUTH_ROUTES.includes(pathname) && request.method === "POST") {
+    const ip = getClientIp(request);
+    const endpoint = pathname === "/api/auth/login" ? "auth-login" : "auth-register";
+    const key = `ip:${ip}:${endpoint}`;
+
+    const result = checkLimitByKey(key, endpoint);
+    if (!result.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMITED",
+            message: "Too many attempts. Please try again later.",
+          },
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(result.retryAfter) },
+        }
+      );
+    }
+
+    // Allow the request to proceed (no auth check for public routes)
+    return NextResponse.next();
   }
 
   const user = await getAuthUser(request);
@@ -101,6 +146,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/auth/login",
+    "/api/auth/register",
     "/api/characters/:path*",
     "/api/generate/:path*",
     "/api/generations/:path*",

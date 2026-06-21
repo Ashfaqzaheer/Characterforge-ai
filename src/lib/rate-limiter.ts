@@ -15,8 +15,10 @@ interface RateLimitResult {
 }
 
 const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
-  generation: { windowMs: 3_600_000, max: 10 }, // 10 per hour
-  general: { windowMs: 60_000, max: 60 },       // 60 per minute
+  generation: { windowMs: 3_600_000, max: 10 },       // 10 per hour
+  general: { windowMs: 60_000, max: 60 },             // 60 per minute
+  "auth-login": { windowMs: 900_000, max: 5 },        // 5 attempts per 15 min per IP
+  "auth-register": { windowMs: 3_600_000, max: 3 },   // 3 registrations per hour per IP
 };
 
 // In-memory store: key → sorted array of timestamps
@@ -35,24 +37,33 @@ export function checkLimit(
   userId: string,
   endpoint: "generation" | "general"
 ): RateLimitResult {
+  return checkLimitByKey(getKey(userId, endpoint), endpoint);
+}
+
+/**
+ * General-purpose rate limit check keyed by an arbitrary identifier (e.g. IP address).
+ * Used for unauthenticated endpoints like login/register where no userId is available.
+ */
+export function checkLimitByKey(
+  key: string,
+  endpoint: string
+): RateLimitResult {
   const config = RATE_LIMIT_CONFIGS[endpoint];
-  const key = getKey(userId, endpoint);
+  if (!config) return { allowed: true };
+
   const now = Date.now();
   const windowStart = now - config.windowMs;
 
-  // Get existing timestamps and filter to current window
   let timestamps = store.get(key) ?? [];
   timestamps = timestamps.filter((t) => t > windowStart);
 
   if (timestamps.length >= config.max) {
-    // Calculate when the oldest request in the window will expire
     const oldestInWindow = timestamps[0];
     const retryAfter = Math.ceil((oldestInWindow + config.windowMs - now) / 1000);
     store.set(key, timestamps);
     return { allowed: false, retryAfter: Math.max(retryAfter, 1) };
   }
 
-  // Record this request
   timestamps.push(now);
   store.set(key, timestamps);
   return { allowed: true };

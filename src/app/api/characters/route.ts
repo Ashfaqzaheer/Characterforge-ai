@@ -4,6 +4,7 @@ import { createCharacterSchema, validateInput } from "../../../lib/validation";
 import {
   createCharacter,
   listCharacters,
+  PromptRejectedError,
 } from "../../../services/character.service";
 
 /**
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
     const character = await createCharacter(user.id, validation.data);
     return NextResponse.json({ character }, { status: 201 });
   } catch (error) {
+    if (error instanceof PromptRejectedError) {
+      return NextResponse.json(
+        { error: { code: "PROMPT_REJECTED", message: error.reason } },
+        { status: 400 }
+      );
+    }
     console.error("Unexpected error in POST /api/characters:", error);
     return NextResponse.json(
       { error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" } },
