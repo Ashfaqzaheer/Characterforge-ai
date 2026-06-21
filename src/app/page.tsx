@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../lib/auth-context";
 import { RevealLayer } from "../components/reveal-layer";
 import { SceneReferences } from "../components/scene-references";
 import { GalleryShowcase } from "../components/gallery-showcase";
@@ -23,6 +25,8 @@ function scrollTo(id: string) {
 }
 
 export default function HomePage() {
+  const { session } = useAuth();
+  const router = useRouter();
   const mouse = useRef({ x: -999, y: -999 });
   const smooth = useRef({ x: -999, y: -999 });
   const rafRef = useRef<number>(0);
@@ -96,9 +100,9 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Sign Up (desktop) */}
-        <Link href="/register" className="hidden md:block bg-white text-gray-900 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100 transition-colors">
-          Sign Up
+        {/* Sign Up / Dashboard (desktop) */}
+        <Link href={session ? "/dashboard" : "/register"} className="hidden md:block bg-white text-gray-900 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100 transition-colors">
+          {session ? "Dashboard" : "Sign Up"}
         </Link>
 
         {/* Mobile hamburger */}
@@ -140,6 +144,19 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative w-full overflow-hidden h-screen bg-black" style={{ height: "100dvh" }}>
+        {/* Background video (ambient, behind images) */}
+        <video
+          autoPlay
+          muted
+          playsInline
+          loop
+          preload="auto"
+          className="absolute left-1/2 top-0 -translate-x-1/2 object-cover object-top z-[5] opacity-30"
+          style={{ width: "120%", height: "120%" }}
+        >
+          <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_080021_d598092b-c4c2-4e53-8e46-94cf9064cd50.mp4" type="video/mp4" />
+        </video>
+
         <div className="absolute inset-0 bg-center bg-cover bg-no-repeat z-10 hero-zoom" style={{ backgroundImage: `url(${BG_IMAGE_1})` }} />
         <RevealLayer image={BG_IMAGE_2} cursorX={cursorPos.x} cursorY={cursorPos.y} />
 
@@ -165,10 +182,10 @@ export default function HomePage() {
             Generate characters, build scenes, choose aspect ratios, and create story-ready visuals from one cinematic workspace.
           </p>
           <button
-            onClick={() => scrollTo("characters")}
+            onClick={() => router.push(session ? "/dashboard" : "/login")}
             className="bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-7 py-3 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30"
           >
-            Start Creating
+            {session ? "Go to Dashboard" : "Start Creating"}
           </button>
         </div>
       </section>

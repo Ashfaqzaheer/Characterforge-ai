@@ -112,6 +112,18 @@ export default function NewCharacterPage() {
     <>
       <Navbar />
       <main className="max-w-2xl mx-auto px-4 py-8 w-full animate-in">
+        {/* Back button */}
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-1.5 text-[13px] text-white/50 hover:text-white mb-4 transition-colors"
+          aria-label="Back to dashboard"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
         <h1 className="text-2xl font-bold mb-6 text-white">Create Character</h1>
 
         <div className="depth-card p-8">

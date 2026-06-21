@@ -67,7 +67,7 @@ export async function deleteFile(key: string): Promise<void> {
 
 /**
  * Generates a signed URL for reading a file from R2.
- * In mock mode, returns a placeholder URL.
+ * In mock mode, returns the stored image as a data URI if available.
  * Defaults to 1 hour expiry (3600 seconds).
  */
 export async function getSignedUrl(
@@ -75,8 +75,13 @@ export async function getSignedUrl(
   expiresIn: number = 3600
 ): Promise<string> {
   if (MOCK_STORAGE) {
-    // Return a placeholder URL for mock mode
-    return `https://placehold.co/512x512/2a2a3e/ffffff?text=Image`;
+    // Return stored image as data URI if available
+    const stored = mockStore.get(key);
+    if (stored) {
+      const base64 = stored.body.toString("base64");
+      return `data:${stored.contentType};base64,${base64}`;
+    }
+    return `https://placehold.co/512x512/1a1a2e/ffffff?text=Image`;
   }
   const command = new GetObjectCommand({
     Bucket: R2_BUCKET_NAME,

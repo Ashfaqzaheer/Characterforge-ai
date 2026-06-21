@@ -196,26 +196,35 @@ export async function generate(
       throw new GenerationFailedError(result.message);
     }
 
-    // 6. Download generated image and store in R2
+    // 6. Store generated image
     const imageKey = `generations/${userId}/${generation.id}/${randomUUID()}.png`;
-    const imageResponse = await fetch(result.imageUrl);
 
-    if (!imageResponse.ok) {
-      await refund(userId, generation.id);
-      await prisma.generation.update({
-        where: { id: generation.id },
-        data: {
-          status: "FAILED",
-          errorMessage: "Failed to retrieve generated image",
-          completedAt: new Date(),
-        },
-      });
-      throw new GenerationFailedError(
-        "Failed to retrieve generated image. Credit has been refunded."
-      );
+    let imageBuffer: Buffer;
+
+    if (result.imageUrl.startsWith("data:")) {
+      // Base64 data URI (from HuggingFace) — extract buffer directly
+      const base64Data = result.imageUrl.split(",")[1];
+      imageBuffer = Buffer.from(base64Data, "base64");
+    } else {
+      // URL-based image (from Replicate) — download it
+      const imageResponse = await fetch(result.imageUrl);
+      if (!imageResponse.ok) {
+        await refund(userId, generation.id);
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "FAILED",
+            errorMessage: "Failed to retrieve generated image",
+            completedAt: new Date(),
+          },
+        });
+        throw new GenerationFailedError(
+          "Failed to retrieve generated image. Credit has been refunded."
+        );
+      }
+      imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     }
 
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     await uploadFile(imageKey, imageBuffer, "image/png");
 
     // 7. Update record to COMPLETED

@@ -4,8 +4,8 @@ import Link from "next/link";
 
 const PLANS = [
   {
-    name: "Free",
-    price: "₹0",
+    name: "Starter",
+    price: "$0",
     period: "/month",
     features: ["3 character generations", "2 scene generations", "Basic gallery access", "Community support"],
     cta: "Start Free",
@@ -14,7 +14,7 @@ const PLANS = [
   },
   {
     name: "Creator",
-    price: "₹499",
+    price: "$19",
     period: "/month",
     features: ["100 character generations", "50 scene generations", "HD image export", "Priority generation", "Save unlimited characters"],
     cta: "Upgrade to Creator",
@@ -23,7 +23,7 @@ const PLANS = [
   },
   {
     name: "Studio",
-    price: "₹1499",
+    price: "$49",
     period: "/month",
     features: ["Unlimited character generations", "Unlimited scene generations", "8K quality exports", "Commercial usage", "Priority support"],
     cta: "Go Studio",

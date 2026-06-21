@@ -30,36 +30,18 @@ const ASPECT_RATIOS = [
   { value: "21:9", label: "21:9", desc: "Cinematic" },
 ] as const;
 
-interface ReferenceImage {
-  id: string;
-  storageKey: string;
-  filename: string;
-}
+interface ReferenceImage { id: string; storageKey: string; filename: string; }
 
 interface CharacterDetail {
-  id: string;
-  name: string;
-  description: string;
-  age?: string | null;
-  gender?: string | null;
-  style?: string | null;
-  outfit?: string | null;
-  personality?: string | null;
-  negativePrompt?: string | null;
-  hairDescription?: string | null;
-  faceDescription?: string | null;
-  eyeColor?: string | null;
-  bodyType?: string | null;
-  colorPalette?: string | null;
-  createdAt: string;
-  images: ReferenceImage[];
+  id: string; name: string; description: string;
+  age?: string | null; gender?: string | null; style?: string | null;
+  outfit?: string | null; personality?: string | null; negativePrompt?: string | null;
+  hairDescription?: string | null; faceDescription?: string | null;
+  eyeColor?: string | null; bodyType?: string | null; colorPalette?: string | null;
+  createdAt: string; images: ReferenceImage[];
 }
 
-export default function CharacterDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { session, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -76,14 +58,12 @@ export default function CharacterDetailPage({
   useEffect(() => {
     if (authLoading) return;
     if (!session) { router.push("/login"); return; }
-
     async function fetchCharacter() {
       try {
         const res = await apiFetch(`/api/characters/${id}`);
         if (!res.ok) { router.push("/dashboard"); return; }
         const data = await res.json();
         setCharacter(data.character);
-
         const urls: Record<string, string> = {};
         for (const img of data.character.images || []) {
           const urlRes = await apiFetch(`/api/images/${img.storageKey}`);
@@ -97,14 +77,9 @@ export default function CharacterDetailPage({
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
-    setGenError("");
-    setGeneratedImage(null);
-    setGenerating(true);
+    setGenError(""); setGeneratedImage(null); setGenerating(true);
     try {
-      const res = await apiFetch("/api/generate", {
-        method: "POST",
-        body: JSON.stringify({ characterId: id, prompt, aspectRatio }),
-      });
+      const res = await apiFetch("/api/generate", { method: "POST", body: JSON.stringify({ characterId: id, prompt, aspectRatio }) });
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 402) setGenError("Insufficient credits.");
@@ -121,137 +96,138 @@ export default function CharacterDetailPage({
   }
 
   if (authLoading || loading) {
-    return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-[var(--text-muted)]">Loading...</p></div></>);
+    return (<><Navbar /><div className="flex flex-1 items-center justify-center min-h-screen"><p className="text-[#81a0bb]/60">Loading...</p></div></>);
   }
   if (!character) return null;
 
-  const memoryFields = [
-    { label: "Age", value: character.age },
-    { label: "Gender", value: character.gender },
-    { label: "Hair", value: character.hairDescription },
-    { label: "Face", value: character.faceDescription },
-    { label: "Eye Color", value: character.eyeColor },
-    { label: "Body Type", value: character.bodyType },
-    { label: "Style", value: character.style },
-    { label: "Outfit", value: character.outfit },
-    { label: "Personality", value: character.personality },
-    { label: "Color Palette", value: character.colorPalette },
-    { label: "Negative Prompt", value: character.negativePrompt },
-  ].filter((f) => f.value);
-
   return (
-    <>
+    <div className="min-h-screen bg-black">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 py-8 w-full animate-in">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">{character.name}</h1>
-          <p className="text-[var(--text-secondary)] mt-1">{character.description}</p>
-        </div>
 
-        {/* Character Memory */}
-        {memoryFields.length > 0 && (
-          <section className="depth-card p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-3 text-white">Character Memory</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {memoryFields.map((f) => (
-                <div key={f.label} className="p-2 rounded-[var(--radius-md)] bg-[var(--surface-card)] border border-[var(--border-default)]">
-                  <span className="text-xs text-[var(--text-muted)]">{f.label}</span>
-                  <p className="text-sm text-[var(--text-primary)]">{f.value}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+      <main className="max-w-[760px] mx-auto px-5 pt-10 pb-20">
+        {/* Back button */}
+        <button
+          onClick={() => { window.history.length > 1 ? router.back() : router.push("/dashboard"); }}
+          className="flex items-center gap-1.5 text-[13px] text-white/50 hover:text-white mb-4 transition-colors"
+          aria-label="Go back to dashboard"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
+        {/* Character info */}
+        <div className="mb-6">
+          <h1 className="text-[24px] font-bold text-white">{character.name}</h1>
+          <p className="text-[#81a0bb] text-sm mt-1">{character.description}</p>
+        </div>
 
         {/* Reference Images */}
         {character.images.length > 0 && (
-          <section className="depth-card p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-3 text-white">Reference Images</h2>
-            <div className="flex gap-3 flex-wrap">
-              {character.images.map((img) => (
-                <div key={img.id} className="w-32 h-32 rounded-[var(--radius-md)] border border-[var(--border-default)] overflow-hidden bg-[var(--surface-card)]">
-                  {imageUrls[img.id] ? (
-                    <img src={imageUrls[img.id]} alt={`Reference: ${img.filename}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-[var(--text-muted)]">Loading...</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
+          <div className="flex gap-3 flex-wrap mb-6">
+            {character.images.map((img) => (
+              <div key={img.id} className="w-20 h-20 rounded-xl border border-white/[0.12] overflow-hidden bg-[#0a0a0a]">
+                {imageUrls[img.id] ? (
+                  <img src={imageUrls[img.id]} alt={img.filename} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-white/30">...</div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
 
-        {/* Generation Form */}
-        <section className="depth-card p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-3 text-white">Generate Scene</h2>
+        {/* Generate Scene Card */}
+        <div className="rounded-2xl border border-white/[0.12] bg-[rgba(10,10,10,0.75)] backdrop-blur-sm p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <h2 className="text-[18px] font-semibold text-white mb-4">Generate Scene</h2>
 
-          {/* Scene Templates */}
-          <div className="mb-4">
-            <p className="text-xs text-[var(--text-muted)] mb-2">Quick templates:</p>
+          {/* Quick templates */}
+          <div className="mb-5">
+            <p className="text-[11px] text-white/40 mb-2.5 uppercase tracking-wide">Quick templates:</p>
             <div className="flex flex-wrap gap-2">
-              {SCENE_TEMPLATES.map((template) => (
+              {SCENE_TEMPLATES.map((t) => (
                 <button
-                  key={template}
+                  key={t}
                   type="button"
-                  onClick={() => setPrompt(template)}
-                  className="glass-card px-3 py-1 text-xs rounded-[var(--radius-full)] text-[var(--text-secondary)]"
+                  onClick={() => setPrompt(t)}
+                  className={`px-3.5 py-1.5 text-[12px] rounded-full border transition-all ${
+                    prompt === t
+                      ? "border-[#2d628c] text-white bg-[#2d628c]/20"
+                      : "border-white/[0.12] text-[#81a0bb] bg-transparent hover:border-white/25 hover:text-white"
+                  }`}
                 >
-                  {template}
+                  {t}
                 </button>
               ))}
             </div>
           </div>
 
-          <form onSubmit={handleGenerate} className="space-y-4">
+          <form onSubmit={handleGenerate} className="space-y-5">
             {genError && (
-              <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
-                {genError}
-              </div>
+              <div className="p-3 text-[13px] text-red-400 bg-red-900/15 border border-red-800/25 rounded-xl">{genError}</div>
             )}
+
+            {/* Scene Prompt */}
             <div>
-              <label htmlFor="prompt" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Scene Prompt</label>
-              <textarea id="prompt" required maxLength={500} rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-                className="input-field resize-none"
-                placeholder="Describe the scene..." />
-              <p className="text-xs text-[var(--text-muted)] mt-1">{prompt.length}/500</p>
+              <label className="block text-[11px] font-medium text-[#81a0bb] mb-2 uppercase tracking-wider">Scene Prompt</label>
+              <textarea
+                required
+                maxLength={500}
+                rows={3}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe the scene..."
+                className="w-full bg-[#0a0a0a] border border-white/[0.12] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 resize-none focus:outline-none focus:border-[#2d628c] focus:ring-1 focus:ring-[#2d628c]/30 transition-all"
+              />
+              <p className="text-[11px] text-white/30 mt-1.5 text-right">{prompt.length}/500</p>
             </div>
-            {/* Aspect Ratio Selector */}
+
+            {/* Aspect Ratio */}
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Aspect Ratio</label>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              <label className="block text-[11px] font-medium text-[#81a0bb] mb-2 uppercase tracking-wider">Aspect Ratio</label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {ASPECT_RATIOS.map((ar) => (
                   <button
                     key={ar.value}
                     type="button"
                     onClick={() => setAspectRatio(ar.value)}
-                    className={`glass-card p-2 rounded-[var(--radius-md)] text-center transition-all ${
+                    className={`p-2.5 rounded-xl border text-center transition-all ${
                       aspectRatio === ar.value
-                        ? "bg-[var(--brand-primary)] border-[var(--brand-primary)] text-white"
-                        : "text-[var(--text-secondary)]"
+                        ? "border-[#2d628c] bg-[#2d628c]/15 shadow-[0_0_12px_rgba(45,98,140,0.2)]"
+                        : "border-white/[0.12] bg-transparent hover:border-white/25"
                     }`}
                   >
-                    <span className="block text-sm font-medium">{ar.label}</span>
-                    <span className="block text-[10px] opacity-70">{ar.desc}</span>
+                    <span className={`block text-[13px] font-medium ${aspectRatio === ar.value ? "text-white" : "text-[#81a0bb]"}`}>{ar.label}</span>
+                    <span className={`block text-[9px] mt-0.5 ${aspectRatio === ar.value ? "text-white/70" : "text-white/30"}`}>{ar.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
-            <button type="submit" disabled={generating} className="btn-primary">
-              {generating ? "Generating..." : "Generate"}
-            </button>
+
+            {/* Generate Button */}
+            <div>
+              <button
+                type="submit"
+                disabled={generating}
+                className="h-[44px] px-8 rounded-full bg-gradient-to-r from-[#2d628c] to-[#1a4a6e] text-white text-[14px] font-semibold transition-all hover:shadow-[0_4px_20px_rgba(45,98,140,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100"
+              >
+                {generating ? "Generating..." : "Generate"}
+              </button>
+            </div>
           </form>
-        </section>
+        </div>
 
         {/* Generated Image */}
         {generatedImage && (
-          <section className="depth-card p-6">
-            <h2 className="text-lg font-semibold mb-3 text-white">Generated Image</h2>
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] overflow-hidden inline-block">
-              <img src={generatedImage} alt="Generated scene" className="max-w-full max-h-96" />
+          <div className="mt-6 rounded-2xl border border-white/[0.12] bg-[rgba(10,10,10,0.75)] p-6">
+            <h2 className="text-[16px] font-semibold text-white mb-3">Generated Image</h2>
+            <div className="rounded-xl border border-white/[0.08] overflow-hidden inline-block">
+              <img src={generatedImage} alt="Generated scene" className="max-w-full max-h-[400px]" />
             </div>
-          </section>
+          </div>
         )}
       </main>
-    </>
+    </div>
   );
 }
