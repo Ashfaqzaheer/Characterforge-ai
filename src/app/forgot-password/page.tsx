@@ -22,7 +22,8 @@ export default function ForgotPasswordPage() {
       });
 
       if (resetError) {
-        console.error("[forgot-password]", resetError.message);
+        // Error intentionally not logged to browser console to prevent information leak
+        // (e.g. "Email not found" would enable email enumeration). Debug via Supabase dashboard.
       }
 
       // Always show success message regardless of whether email exists (security)
