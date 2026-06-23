@@ -41,10 +41,17 @@ export default function HistoryPage() {
         setGenerations(data.generations ?? []);
         setTotalPages(data.totalPages ?? 1);
         const urls: Record<string, string> = {};
-        for (const gen of data.generations ?? []) {
-          if (gen.imageKey) {
+        const withImages = (data.generations ?? []).filter((gen: HistoryItem) => gen.imageKey);
+        const results = await Promise.allSettled(
+          withImages.map(async (gen: HistoryItem) => {
             const urlRes = await apiFetch(`/api/images/${gen.imageKey}`);
-            if (urlRes.ok) { const urlData = await urlRes.json(); urls[gen.id] = urlData.url; }
+            if (urlRes.ok) { const urlData = await urlRes.json(); return { id: gen.id, url: urlData.url as string }; }
+            return null;
+          })
+        );
+        for (const result of results) {
+          if (result.status === "fulfilled" && result.value) {
+            urls[result.value.id] = result.value.url;
           }
         }
         setImageUrls(urls);
