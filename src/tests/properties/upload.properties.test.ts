@@ -21,6 +21,12 @@ vi.mock("../../lib/db", () => ({
       get count() { return mockReferenceImageCount; },
       get create() { return mockReferenceImageCreate; },
     },
+    $transaction: (fn: (tx: any) => any) => fn({
+      referenceImage: {
+        count: mockReferenceImageCount,
+        create: mockReferenceImageCreate,
+      },
+    }),
   },
 }));
 
@@ -522,7 +528,7 @@ describe("Property 9: Reference image count bounds", () => {
   });
 
   it("rejects upload when character already has 3 or more images", async () => {
-    const { validateAndUpload, UploadValidationError } = await import(
+    const { validateAndUpload, ImageLimitExceededError } = await import(
       "../../services/upload.service"
     );
 
@@ -543,6 +549,7 @@ describe("Property 9: Reference image count bounds", () => {
           mockSharpMetadata.mockResolvedValue({ format, width: 100, height: 100 });
           mockSharpToBuffer.mockResolvedValue(buffer);
           mockReferenceImageCount.mockResolvedValue(currentCount);
+          mockUploadFile.mockResolvedValue(undefined);
 
           await expect(
             validateAndUpload(userId, characterId, {
@@ -550,17 +557,7 @@ describe("Property 9: Reference image count bounds", () => {
               mimeType,
               originalFilename: "test.png",
             })
-          ).rejects.toThrow(UploadValidationError);
-
-          try {
-            await validateAndUpload(userId, characterId, {
-              buffer,
-              mimeType,
-              originalFilename: "test.png",
-            });
-          } catch (err: any) {
-            expect(err.code).toBe("MAX_IMAGES_REACHED");
-          }
+          ).rejects.toThrow(ImageLimitExceededError);
         }
       ),
       { numRuns: 100 }

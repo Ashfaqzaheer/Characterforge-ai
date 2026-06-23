@@ -5,6 +5,7 @@ import {
   validateAndUpload,
   UploadValidationError,
   MAX_FILE_SIZE,
+  ImageLimitExceededError,
 } from "../../../../../services/upload.service";
 
 /**
@@ -101,6 +102,12 @@ export async function POST(
 
     return NextResponse.json({ image: referenceImage }, { status: 201 });
   } catch (error) {
+    if (error instanceof ImageLimitExceededError) {
+      return NextResponse.json(
+        { error: { code: "IMAGE_LIMIT_EXCEEDED", message: error.message } },
+        { status: 409 }
+      );
+    }
     if (error instanceof UploadValidationError) {
       const status = error.code === "FORBIDDEN" ? 403 : 400;
       return NextResponse.json(

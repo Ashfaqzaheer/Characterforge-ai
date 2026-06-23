@@ -2,6 +2,9 @@ import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { prisma } from "../lib/db";
 import { uploadFile, deleteFile } from "../lib/r2";
+import { ImageLimitExceededError } from "../lib/errors";
+
+export { ImageLimitExceededError };
 
 const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number];
@@ -154,36 +157,39 @@ export async function validateAndUpload(
   // 4. Validate dimensions
   const { width, height } = await validateDimensions(file.buffer);
 
-  // 5. Check image count limit
-  const currentCount = await getImageCount(characterId);
-  if (currentCount >= MAX_IMAGES_PER_CHARACTER) {
-    throw new UploadValidationError(
-      "MAX_IMAGES_REACHED",
-      "Maximum of 3 reference images per character"
-    );
-  }
-
-  // 6. Strip EXIF metadata
+  // 5. Strip EXIF metadata
   const processedBuffer = await stripMetadata(file.buffer, file.mimeType);
 
-  // 7. Generate unique storage key
+  // 6. Generate unique storage key
   const ext = MIME_TO_EXT[file.mimeType];
   const storageKey = `references/${userId}/${characterId}/${randomUUID()}.${ext}`;
 
-  // 8. Upload to R2
+  // 7. Upload to R2 OUTSIDE the transaction to avoid holding a DB connection
+  // open across an external network call.
+  // NOTE: If the transaction below fails after this upload succeeds, the R2 object
+  // becomes orphaned. A background cleanup job or R2 lifecycle policy should handle this.
   await uploadFile(storageKey, processedBuffer, file.mimeType);
 
-  // 9. Save DB record
-  const referenceImage = await prisma.referenceImage.create({
-    data: {
-      characterId,
-      storageKey,
-      filename: file.originalFilename,
-      mimeType: file.mimeType,
-      sizeBytes: processedBuffer.length,
-      width,
-      height,
-    },
+  // 8. Atomic count + insert inside a transaction to prevent TOCTOU race condition.
+  // Without this, two concurrent uploads for the same character could both read count=2,
+  // both pass the check, and both insert — exceeding the 3-image limit.
+  const referenceImage = await prisma.$transaction(async (tx) => {
+    const count = await tx.referenceImage.count({ where: { characterId } });
+    if (count >= MAX_IMAGES_PER_CHARACTER) {
+      throw new ImageLimitExceededError();
+    }
+
+    return tx.referenceImage.create({
+      data: {
+        characterId,
+        storageKey,
+        filename: file.originalFilename,
+        mimeType: file.mimeType,
+        sizeBytes: processedBuffer.length,
+        width,
+        height,
+      },
+    });
   });
 
   return referenceImage;
