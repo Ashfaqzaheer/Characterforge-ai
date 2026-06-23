@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { getAuthenticatedUser } from "../../../lib/auth-helpers";
 import { generateSchema, validateInput } from "../../../lib/validation";
+import { checkAndSetKey, clearKey } from "../../../lib/idempotency";
 import {
   generate,
   PromptRejectedError,
@@ -41,6 +43,25 @@ export async function POST(request: NextRequest) {
   }
 
   const { characterId, prompt, aspectRatio } = validation.data;
+
+  // Idempotency check: prevent duplicate generations from double-submits/retries.
+  // Must happen BEFORE credit deduction (which is inside generate()).
+  const idempotencyKey = createHash("sha256")
+    .update(`${user.id}:${characterId}:${prompt}:${aspectRatio}`)
+    .digest("hex")
+    .slice(0, 32);
+
+  if (checkAndSetKey(idempotencyKey)) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "DUPLICATE_REQUEST",
+          message: "An identical generation request was just submitted. Please wait a moment before trying again.",
+        },
+      },
+      { status: 409 }
+    );
+  }
 
   try {
     const generation = await generate(user.id, characterId, prompt, aspectRatio);
@@ -107,5 +128,8 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    // Clear the idempotency key so the user can retry after success or failure
+    clearKey(idempotencyKey);
   }
 }
