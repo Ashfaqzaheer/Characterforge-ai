@@ -4,7 +4,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
-  title: "CharacterForge AI",
+  title: {
+    default: "CharacterForge AI",
+    template: "%s | CharacterForge AI",
+  },
   description:
     "Create consistent AI-generated characters using reference images and generate new scene images.",
 };
