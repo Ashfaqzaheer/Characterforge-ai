@@ -86,8 +86,8 @@ const invalidMimeTypes = [
 ];
 const invalidMimeTypeArb = fc.constantFrom(...invalidMimeTypes);
 
-const validFileSizeArb = fc.integer({ min: 1, max: 5 * 1024 * 1024 }); // 1 byte to 5MB
-const oversizeFileSizeArb = fc.integer({ min: 5 * 1024 * 1024 + 1, max: 20 * 1024 * 1024 }); // >5MB to 20MB
+const validFileSizeArb = fc.integer({ min: 1, max: 4 * 1024 * 1024 }); // 1 byte to 4MB
+const oversizeFileSizeArb = fc.integer({ min: 4 * 1024 * 1024 + 1, max: 20 * 1024 * 1024 }); // >4MB to 20MB
 
 const validDimensionArb = fc.integer({ min: 1, max: 4096 });
 const oversizeDimensionArb = fc.integer({ min: 4097, max: 10000 });
@@ -246,7 +246,7 @@ describe("Property 7: Upload file size validation", () => {
     vi.clearAllMocks();
   });
 
-  it("accepts files within the 5MB size limit", async () => {
+  it("accepts files within the 4MB size limit", async () => {
     const { validateAndUpload } = await import("../../services/upload.service");
 
     await fc.assert(
@@ -254,7 +254,7 @@ describe("Property 7: Upload file size validation", () => {
         uuidArb,
         uuidArb,
         validMimeTypeArb,
-        // Use sizes from 1 to 5MB (we can't allocate huge buffers, so test with smaller representative sizes)
+        // Use sizes from 1 to 4MB (we can't allocate huge buffers, so test with smaller representative sizes)
         fc.integer({ min: 1, max: 1024 }),
         async (userId, characterId, mimeType, size) => {
           vi.clearAllMocks();
@@ -294,7 +294,7 @@ describe("Property 7: Upload file size validation", () => {
     );
   });
 
-  it("rejects files exceeding 5MB", async () => {
+  it("rejects files exceeding 4MB", async () => {
     const { validateAndUpload, UploadValidationError } = await import(
       "../../services/upload.service"
     );
@@ -308,7 +308,7 @@ describe("Property 7: Upload file size validation", () => {
         async (userId, characterId, mimeType, size) => {
           vi.clearAllMocks();
 
-          // Create a buffer that reports its length > 5MB
+          // Create a buffer that reports its length > 4MB
           // We don't actually allocate the full buffer, we test the validation logic
           const buffer = { length: size } as unknown as Buffer;
 

@@ -21,7 +21,7 @@ vi.mock("../../services/upload.service", () => ({
     code: string;
     constructor(code: string, msg: string) { super(msg); this.code = code; this.name = "UploadValidationError"; }
   },
-  MAX_FILE_SIZE: 5 * 1024 * 1024,
+  MAX_FILE_SIZE: 4 * 1024 * 1024,
 }));
 
 describe("Upload body size pre-check", () => {
@@ -30,7 +30,7 @@ describe("Upload body size pre-check", () => {
   it("returns 413 when Content-Length exceeds MAX_REQUEST_BODY_SIZE, without calling formData", async () => {
     const { POST } = await import("../../app/api/characters/[id]/images/route");
 
-    // 10MB declared — way over the 5MB + 64KB limit
+    // 10MB declared — way over the 4MB + 64KB limit
     const request = new Request("http://localhost/api/characters/abc/images", {
       method: "POST",
       headers: {

@@ -58,8 +58,8 @@ export default function NewCharacterPage() {
         setErrors((prev) => ({ ...prev, files: "Only PNG, JPEG, and WebP images are allowed." }));
         return;
       }
-      if (f.size > 5 * 1024 * 1024) {
-        setErrors((prev) => ({ ...prev, files: "Each image must be 5MB or smaller." }));
+      if (f.size > 4 * 1024 * 1024) { // Must match MAX_FILE_SIZE in upload.service.ts
+        setErrors((prev) => ({ ...prev, files: "Each image must be 4MB or smaller." }));
         return;
       }
     }

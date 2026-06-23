@@ -10,7 +10,7 @@ import {
 
 /**
  * Maximum allowed request body size for this route.
- * MAX_FILE_SIZE (5MB) + 64KB for multipart boundary/headers overhead.
+ * MAX_FILE_SIZE (4MB) + 64KB for multipart boundary/headers overhead.
  */
 const MAX_REQUEST_BODY_SIZE = MAX_FILE_SIZE + 64 * 1024;
 
@@ -31,7 +31,7 @@ export async function POST(
     const declaredSize = parseInt(contentLength, 10);
     if (!isNaN(declaredSize) && declaredSize > MAX_REQUEST_BODY_SIZE) {
       return NextResponse.json(
-        { error: { code: "FILE_TOO_LARGE", message: "File exceeds maximum allowed size of 5MB" } },
+        { error: { code: "FILE_TOO_LARGE", message: "File exceeds maximum allowed size of 4MB" } },
         { status: 413 }
       );
     }

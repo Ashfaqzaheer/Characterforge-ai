@@ -15,7 +15,7 @@ const MIME_TO_EXT: Record<AllowedMimeType, string> = {
   "image/webp": "webp",
 };
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB (Vercel's 4.5MB platform limit minus multipart overhead)
 const MAX_DIMENSION = 4096;
 const MAX_IMAGES_PER_CHARACTER = 3;
 
@@ -51,7 +51,7 @@ function validateFileSize(sizeBytes: number): void {
   if (sizeBytes > MAX_FILE_SIZE) {
     throw new UploadValidationError(
       "FILE_TOO_LARGE",
-      "File size must not exceed 5MB"
+      "File size must not exceed 4MB"
     );
   }
 }
