@@ -113,3 +113,32 @@ export class UserNotFoundError extends Error {
     this.name = "UserNotFoundError";
   }
 }
+
+/**
+ * Adds credits after a completed payment. Idempotent via stripePaymentIntentId uniqueness.
+ */
+export async function addCredits(
+  userId: string,
+  credits: number,
+  stripePaymentIntentId: string,
+  packId: string,
+  amountPaidCents: number
+): Promise<void> {
+  const existing = await prisma.purchaseRecord.findUnique({
+    where: { stripePaymentIntentId },
+  });
+  if (existing) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { creditBalance: { increment: credits } },
+    });
+    await tx.creditTransaction.create({
+      data: { userId, amount: credits, type: "PURCHASE", generationId: null },
+    });
+    await tx.purchaseRecord.create({
+      data: { userId, packId, stripePaymentIntentId, creditsAdded: credits, amountPaidCents },
+    });
+  });
+}

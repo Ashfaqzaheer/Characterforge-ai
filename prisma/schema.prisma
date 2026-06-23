@@ -11,13 +11,15 @@ model User {
   id            String   @id @default(uuid())
   supabaseId    String   @unique @map("supabase_id")
   email         String   @unique
-  creditBalance Int      @default(10) @map("credit_balance")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  creditBalance    Int      @default(10) @map("credit_balance")
+  stripeCustomerId String?  @unique @map("stripe_customer_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   characters    Character[]
   generations   Generation[]
   transactions  CreditTransaction[]
+  purchases     PurchaseRecord[]
 
   @@map("users")
 }
@@ -109,8 +111,24 @@ model CreditTransaction {
   @@map("credit_transactions")
 }
 
+model PurchaseRecord {
+  id                    String   @id @default(uuid())
+  userId                String   @map("user_id")
+  packId                String   @map("pack_id")
+  stripePaymentIntentId String   @unique @map("stripe_payment_intent_id")
+  creditsAdded          Int      @map("credits_added")
+  amountPaidCents       Int      @map("amount_paid_cents")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("purchase_records")
+}
+
 enum TransactionType {
   DEDUCTION
   REFUND
   INITIAL_GRANT
+  PURCHASE
 }

@@ -53,6 +53,12 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // --- Public payment routes: no auth required ---
+  const PUBLIC_PAYMENT_ROUTES = ["/api/payments/webhook", "/api/payments/status"];
+  if (PUBLIC_PAYMENT_ROUTES.includes(pathname)) {
+    return NextResponse.next();
+  }
+
   // --- Public auth routes: rate limit by IP only, no auth required ---
   if (PUBLIC_AUTH_ROUTES.includes(pathname) && request.method === "POST") {
     const ip = getClientIp(request);
@@ -154,5 +160,6 @@ export const config = {
     "/api/credits/:path*",
     "/api/auth/logout/:path*",
     "/api/images/:path*",
+    "/api/payments/:path*",
   ],
 };
