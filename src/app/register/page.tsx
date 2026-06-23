@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,8 +31,11 @@ export default function RegisterPage() {
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
         });
+        router.push("/dashboard");
+      } else {
+        // Email confirmation required — show info panel instead of redirecting
+        setEmailConfirmationRequired(true);
       }
-      router.push("/dashboard");
     } catch { setError("Registration failed. Please try again."); }
     finally { setLoading(false); }
   }
@@ -47,36 +51,51 @@ export default function RegisterPage() {
               <p className="text-sm text-[var(--text-muted)] mt-2">Start generating consistent characters</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
-                  {error}
+            {emailConfirmationRequired ? (
+              <div className="space-y-4">
+                <div role="alert" className="p-4 text-sm text-blue-400 bg-blue-900/20 border border-blue-800/30 rounded-[var(--radius-md)]">
+                  Account created! Please check your email to confirm your address before signing in.
                 </div>
-              )}
-
-              <div>
-                <label htmlFor="email" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Email</label>
-                <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="input-field" placeholder="you@example.com" />
+                <p className="text-center text-sm text-[var(--text-muted)]">
+                  <Link href="/login" className="text-[var(--text-secondary)] hover:text-white transition-colors">
+                    Back to sign in
+                  </Link>
+                </p>
               </div>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {error && (
+                    <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
+                      {error}
+                    </div>
+                  )}
 
-              <div>
-                <label htmlFor="password" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Password</label>
-                <input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="input-field" placeholder="Min. 8 characters" />
-              </div>
+                  <div>
+                    <label htmlFor="email" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Email</label>
+                    <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                      className="input-field" placeholder="you@example.com" />
+                  </div>
 
-              <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? "Creating account..." : "Create account"}
-              </button>
-            </form>
+                  <div>
+                    <label htmlFor="password" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Password</label>
+                    <input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
+                      className="input-field" placeholder="Min. 8 characters" />
+                  </div>
 
-            <p className="text-center text-sm text-[var(--text-muted)] mt-6">
-              Already have an account?{" "}
-              <Link href="/login" className="text-[var(--text-secondary)] hover:text-white transition-colors">
-                Sign in
-              </Link>
-            </p>
+                  <button type="submit" disabled={loading} className="btn-primary w-full">
+                    {loading ? "Creating account..." : "Create account"}
+                  </button>
+                </form>
+
+                <p className="text-center text-sm text-[var(--text-muted)] mt-6">
+                  Already have an account?{" "}
+                  <Link href="/login" className="text-[var(--text-secondary)] hover:text-white transition-colors">
+                    Sign in
+                  </Link>
+                </p>
+              </>
+            )}
           </div>
         </div>
       </main>
