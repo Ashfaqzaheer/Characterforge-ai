@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowser } from "../../lib/supabase-browser";
 import { Navbar } from "../../components/navbar";
+
+function SessionExpiredBanner() {
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get("reason") === "session_expired";
+
+  if (!sessionExpired) return null;
+
+  return (
+    <div role="alert" className="p-3 text-sm text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded-xl mb-4">
+      Your session expired. Please sign in again to continue.
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,6 +50,9 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <Suspense fallback={null}>
+                <SessionExpiredBanner />
+              </Suspense>
               {error && (
                 <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
                   {error}

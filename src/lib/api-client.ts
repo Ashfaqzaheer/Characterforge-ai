@@ -30,8 +30,8 @@ export async function apiFetch(
   const res = await fetch(path, { ...options, headers });
 
   if (res.status === 401) {
-    // Session expired — redirect to login
-    window.location.href = "/login";
+    // Session expired — redirect to login with explanatory message
+    window.location.href = "/login?reason=session_expired";
   }
 
   return res;
