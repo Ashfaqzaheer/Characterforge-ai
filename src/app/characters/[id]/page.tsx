@@ -65,9 +65,21 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
         const data = await res.json();
         setCharacter(data.character);
         const urls: Record<string, string> = {};
-        for (const img of data.character.images || []) {
-          const urlRes = await apiFetch(`/api/images/${img.storageKey}`);
-          if (urlRes.ok) { const urlData = await urlRes.json(); urls[img.id] = urlData.url; }
+        const images = data.character.images || [];
+        const results = await Promise.allSettled(
+          images.map(async (img: { id: string; storageKey: string }) => {
+            const urlRes = await apiFetch(`/api/images/${img.storageKey}`);
+            if (urlRes.ok) {
+              const urlData = await urlRes.json();
+              return { id: img.id, url: urlData.url as string };
+            }
+            return null;
+          })
+        );
+        for (const result of results) {
+          if (result.status === "fulfilled" && result.value) {
+            urls[result.value.id] = result.value.url;
+          }
         }
         setImageUrls(urls);
       } finally { setLoading(false); }
