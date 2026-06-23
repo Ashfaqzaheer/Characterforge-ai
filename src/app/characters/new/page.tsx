@@ -88,18 +88,45 @@ export default function NewCharacterPage() {
       }
 
       const characterId = createData.character?.id;
+      if (!characterId) {
+        setErrors({ form: "Character creation failed unexpectedly." });
+        return;
+      }
 
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const uploadRes = await apiFetch(`/api/characters/${characterId}/images`, { method: "POST", body: formData });
-        if (!uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          setErrors({ files: uploadData.error?.message || "Image upload failed." });
-          break;
+      // Upload images in parallel
+      if (files.length > 0) {
+        const uploadResults = await Promise.allSettled(
+          files.map(async (file) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            const uploadRes = await apiFetch(`/api/characters/${characterId}/images`, { method: "POST", body: formData });
+            if (!uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              throw new Error(uploadData.error?.message || "Upload failed");
+            }
+            return true;
+          })
+        );
+
+        const succeeded = uploadResults.filter((r) => r.status === "fulfilled").length;
+        const failed = uploadResults.filter((r) => r.status === "rejected").length;
+
+        if (failed > 0 && succeeded > 0) {
+          // Partial success — inform user, then redirect after delay
+          setErrors({ files: `Character created, but ${failed} of ${files.length} images failed to upload. Redirecting to character page...` });
+          setTimeout(() => router.push(`/characters/${characterId}`), 3000);
+          return;
+        }
+
+        if (failed > 0 && succeeded === 0) {
+          // All uploads failed — stay on page with link
+          setErrors({ files: `Character created but no images were uploaded. Visit the character page to add reference images.` });
+          setTimeout(() => router.push(`/characters/${characterId}`), 3000);
+          return;
         }
       }
 
+      // All uploads succeeded (or no files) — redirect immediately
       router.push(`/characters/${characterId}`);
     } catch {
       setErrors({ form: "Something went wrong. Please try again." });
