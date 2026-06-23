@@ -64,7 +64,7 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
       });
       const data = await res.json();
       if (!res.ok) { setErrors({ form: data.error?.message || "Failed to update character." }); return; }
-      router.push("/dashboard");
+      router.push(`/characters/${id}`);
     } catch { setErrors({ form: "Something went wrong. Please try again." }); }
     finally { setSubmitting(false); }
   }
@@ -77,7 +77,7 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen bg-black">
       <Navbar />
       <main className="max-w-2xl mx-auto px-4 py-8 w-full animate-in">
-        <button onClick={() => router.push("/dashboard")} className="flex items-center gap-1.5 text-[13px] text-white/50 hover:text-white mb-4 transition-colors" aria-label="Back to dashboard">
+        <button onClick={() => { window.history.length > 1 ? router.back() : router.push(`/characters/${id}`); }} className="flex items-center gap-1.5 text-[13px] text-white/50 hover:text-white mb-4 transition-colors" aria-label="Back to character">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
           Back
         </button>
@@ -121,7 +121,7 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
               <button type="submit" disabled={submitting} className="h-[44px] px-8 rounded-full bg-gradient-to-r from-[#2d628c] to-[#1a4a6e] text-white text-[14px] font-semibold transition-all hover:shadow-[0_4px_20px_rgba(45,98,140,0.4)] disabled:opacity-50">
                 {submitting ? "Saving..." : "Save Changes"}
               </button>
-              <button type="button" onClick={() => router.push("/dashboard")} className="h-[44px] px-6 rounded-full border border-white/[0.12] text-white/60 text-[14px] hover:border-white/30 hover:text-white transition-colors">
+              <button type="button" onClick={() => router.push(`/characters/${id}`)} className="h-[44px] px-6 rounded-full border border-white/[0.12] text-white/60 text-[14px] hover:border-white/30 hover:text-white transition-colors">
                 Cancel
               </button>
             </div>
