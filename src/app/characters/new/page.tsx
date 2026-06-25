@@ -6,6 +6,120 @@ import { useAuth } from "../../../lib/auth-context";
 import { apiFetch } from "../../../lib/api-client";
 import { Navbar } from "../../../components/navbar";
 
+interface CharacterTemplate {
+  id: string;
+  label: string;
+  emoji: string;
+  description: string;
+  fields: {
+    name?: string;
+    description?: string;
+    age?: string;
+    gender?: string;
+    style?: string;
+    outfit?: string;
+    personality?: string;
+    hairDescription?: string;
+    faceDescription?: string;
+    eyeColor?: string;
+    bodyType?: string;
+    colorPalette?: string;
+  };
+}
+
+const CHARACTER_TEMPLATES: CharacterTemplate[] = [
+  {
+    id: "anime-hero", label: "Anime Hero", emoji: "⚡",
+    description: "Spiky-haired protagonist with fierce determination",
+    fields: {
+      description: "A passionate young hero with an unbreakable spirit and fierce eyes",
+      age: "17", gender: "male", style: "anime",
+      personality: "determined, passionate, never gives up, loyal to friends",
+      hairDescription: "spiky black hair that defies gravity",
+      faceDescription: "sharp features, intense determined eyes, angular jaw",
+      eyeColor: "dark brown with an inner fire",
+      bodyType: "athletic, lean muscular build",
+      outfit: "torn white training shirt, dark pants, red headband",
+      colorPalette: "black, white, red accents",
+    },
+  },
+  {
+    id: "fantasy-warrior", label: "Fantasy Warrior", emoji: "⚔️",
+    description: "Battle-hardened knight in ornate armor",
+    fields: {
+      description: "A veteran warrior who has survived countless battles, their eyes carrying the weight of hard-won wisdom",
+      age: "35", gender: "female", style: "fantasy, epic, painterly",
+      personality: "stoic, honorable, protective, battle-hardened but kind",
+      hairDescription: "long silver hair, often braided or tied back",
+      faceDescription: "strong jaw, battle scar across left cheek, weathered but beautiful",
+      eyeColor: "steel grey",
+      bodyType: "tall, powerfully built, broad shoulders",
+      outfit: "ornate silver plate armor with blue gemstones, red cape",
+      colorPalette: "silver, royal blue, crimson, gold",
+    },
+  },
+  {
+    id: "cyberpunk-hacker", label: "Cyberpunk Hacker", emoji: "💻",
+    description: "Neon-lit tech genius in a dystopian city",
+    fields: {
+      description: "A brilliant underground hacker who navigates the digital underworld with ease, always three steps ahead",
+      age: "24", gender: "female", style: "cyberpunk, neon noir, digital art",
+      personality: "sarcastic, brilliant, cynical, secretly caring, resourceful",
+      hairDescription: "undercut with neon purple and electric blue dye job",
+      faceDescription: "sharp cheekbones, cybernetic eye implant left eye glowing amber",
+      eyeColor: "one natural green, one cybernetic amber implant",
+      bodyType: "slim, wiry, quick",
+      outfit: "black cropped jacket with LED strips, cargo pants, fingerless gloves, holographic visor",
+      colorPalette: "neon purple, electric blue, amber, black",
+    },
+  },
+  {
+    id: "medieval-queen", label: "Medieval Queen", emoji: "👑",
+    description: "Regal monarch commanding respect and authority",
+    fields: {
+      description: "A wise and powerful queen who rules with both iron will and deep compassion for her people",
+      age: "38", gender: "female", style: "medieval fantasy, regal, oil painting",
+      personality: "commanding, wise, compassionate, dignified, strategic",
+      hairDescription: "flowing auburn hair adorned with braids and a jeweled crown",
+      faceDescription: "high cheekbones, piercing intelligent eyes, elegant bearing",
+      eyeColor: "emerald green",
+      bodyType: "tall and poised, graceful posture",
+      outfit: "deep burgundy velvet gown with gold embroidery, ermine-trimmed cloak, jeweled crown",
+      colorPalette: "burgundy, gold, ivory, deep green",
+    },
+  },
+  {
+    id: "superhero", label: "Superhero", emoji: "🦸",
+    description: "Caped guardian with iconic costume and heroic presence",
+    fields: {
+      description: "A powerful guardian who protects the innocent, their presence radiating strength and unwavering resolve",
+      age: "28", gender: "male", style: "comic book, bold colors, dynamic",
+      personality: "heroic, selfless, inspiring, determined, hopeful",
+      hairDescription: "dark wavy hair, always perfectly windswept",
+      faceDescription: "square jaw, chiseled features, confident smile",
+      eyeColor: "bright blue",
+      bodyType: "massively muscular, heroic physique, broad chest",
+      outfit: "navy blue suit with red cape, gold chest emblem, matching boots and gloves",
+      colorPalette: "navy blue, red, gold, white",
+    },
+  },
+  {
+    id: "scifi-pilot", label: "Sci-Fi Pilot", emoji: "🚀",
+    description: "Daring space explorer with a spacecraft and attitude",
+    fields: {
+      description: "A fearless interstellar pilot who has navigated every corner of the galaxy, surviving on wit and instinct",
+      age: "31", gender: "female", style: "sci-fi, cinematic, realistic",
+      personality: "daring, quick-witted, adventurous, cocky but reliable",
+      hairDescription: "short practical sandy brown hair, sometimes tucked under helmet",
+      faceDescription: "sun-tanned, laugh lines, sharp perceptive eyes",
+      eyeColor: "hazel, always scanning the horizon",
+      bodyType: "lean and agile, pilot-fit",
+      outfit: "worn leather flight jacket with patches, flight suit, fingerless gloves, dog tags",
+      colorPalette: "tan, khaki, deep space navy, chrome",
+    },
+  },
+];
+
 export default function NewCharacterPage() {
   const { session, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -25,6 +139,7 @@ export default function NewCharacterPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !session) {
@@ -47,6 +162,33 @@ export default function NewCharacterPage() {
     return null;
   }
 
+  function applyTemplate(template: CharacterTemplate) {
+    setActiveTemplate(template.id);
+    setName("");
+    if (template.fields.description) setDescription(template.fields.description);
+    if (template.fields.age) setAge(template.fields.age);
+    if (template.fields.gender) setGender(template.fields.gender);
+    if (template.fields.style) setStyle(template.fields.style);
+    if (template.fields.outfit) setOutfit(template.fields.outfit);
+    if (template.fields.personality) setPersonality(template.fields.personality);
+    if (template.fields.hairDescription) setHairDescription(template.fields.hairDescription);
+    if (template.fields.faceDescription) setFaceDescription(template.fields.faceDescription);
+    if (template.fields.eyeColor) setEyeColor(template.fields.eyeColor);
+    if (template.fields.bodyType) setBodyType(template.fields.bodyType);
+    if (template.fields.colorPalette) setColorPalette(template.fields.colorPalette);
+    setErrors({});
+    setTimeout(() => { document.getElementById("name")?.focus(); }, 100);
+  }
+
+  function clearTemplate() {
+    setActiveTemplate(null);
+    setName(""); setDescription(""); setAge(""); setGender("");
+    setStyle(""); setOutfit(""); setPersonality(""); setHairDescription("");
+    setFaceDescription(""); setEyeColor(""); setBodyType(""); setColorPalette("");
+    setNegativePrompt("");
+    setErrors({});
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || []);
     if (selected.length > 3) {
@@ -58,7 +200,7 @@ export default function NewCharacterPage() {
         setErrors((prev) => ({ ...prev, files: "Only PNG, JPEG, and WebP images are allowed." }));
         return;
       }
-      if (f.size > 4 * 1024 * 1024) { // Must match MAX_FILE_SIZE in upload.service.ts
+      if (f.size > 4 * 1024 * 1024) {
         setErrors((prev) => ({ ...prev, files: "Each image must be 4MB or smaller." }));
         return;
       }
@@ -97,7 +239,6 @@ export default function NewCharacterPage() {
         return;
       }
 
-      // Upload images in parallel
       if (files.length > 0) {
         const uploadResults = await Promise.allSettled(
           files.map(async (file) => {
@@ -116,21 +257,18 @@ export default function NewCharacterPage() {
         const failed = uploadResults.filter((r) => r.status === "rejected").length;
 
         if (failed > 0 && succeeded > 0) {
-          // Partial success — inform user, then redirect after delay
           setErrors({ files: `Character created, but ${failed} of ${files.length} images failed to upload. Redirecting to character page...` });
           setTimeout(() => router.push(`/characters/${characterId}`), 3000);
           return;
         }
 
         if (failed > 0 && succeeded === 0) {
-          // All uploads failed — stay on page with link
           setErrors({ files: `Character created but no images were uploaded. Visit the character page to add reference images.` });
           setTimeout(() => router.push(`/characters/${characterId}`), 3000);
           return;
         }
       }
 
-      // All uploads succeeded (or no files) — redirect immediately
       router.push(`/characters/${characterId}`);
     } catch {
       setErrors({ form: "Something went wrong. Please try again." });
@@ -157,6 +295,38 @@ export default function NewCharacterPage() {
 
         <h1 className="text-2xl font-bold mb-6 text-white">Create Character</h1>
 
+        {/* Template Picker */}
+        <div className="mb-6">
+          <p className="text-sm text-white/50 mb-3">Start from a template or fill in from scratch:</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {CHARACTER_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => applyTemplate(template)}
+                className={`text-left p-3 rounded-xl border transition-all ${
+                  activeTemplate === template.id
+                    ? "border-[#e8702a] bg-[#e8702a]/10"
+                    : "border-white/[0.12] bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="text-lg mb-1">{template.emoji}</div>
+                <div className="text-[13px] font-medium text-white leading-tight">{template.label}</div>
+                <div className="text-[11px] text-white/40 mt-0.5 leading-tight">{template.description}</div>
+              </button>
+            ))}
+          </div>
+          {activeTemplate && (
+            <button
+              type="button"
+              onClick={clearTemplate}
+              className="mt-2 text-[11px] text-white/30 hover:text-white/60 transition-colors"
+            >
+              ✕ Clear template
+            </button>
+          )}
+        </div>
+
         <div className="depth-card p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {errors.form && (
@@ -176,6 +346,9 @@ export default function NewCharacterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="name" className="block text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Name *</label>
+                {activeTemplate && (
+                  <p className="text-[11px] text-[#e8702a]/70 mb-1">Give your character a unique name to make them your own.</p>
+                )}
                 <input id="name" type="text" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)}
                   className="input-field"
                   placeholder="Character name" />
