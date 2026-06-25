@@ -71,7 +71,10 @@ export async function listCharacters(userId: string) {
 export async function getCharacterById(userId: string, characterId: string) {
   const character = await prisma.character.findUnique({
     where: { id: characterId },
-    include: { images: true },
+    include: {
+      images: true,
+      _count: { select: { generations: true } },
+    },
   });
 
   if (!character) {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth-context";
 import { apiFetch } from "../../../lib/api-client";
 import { Navbar } from "../../../components/navbar";
+import { CharacterPassport } from "../../../components/character-passport";
 
 const SCENE_TEMPLATES = [
   "Walking in a park",
@@ -39,6 +40,7 @@ interface CharacterDetail {
   hairDescription?: string | null; faceDescription?: string | null;
   eyeColor?: string | null; bodyType?: string | null; colorPalette?: string | null;
   createdAt: string; images: ReferenceImage[];
+  generationCount: number;
 }
 
 export default function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,7 +65,11 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
         const res = await apiFetch(`/api/characters/${id}`);
         if (!res.ok) { router.push("/dashboard"); return; }
         const data = await res.json();
-        setCharacter(data.character);
+        const characterData: CharacterDetail = {
+          ...data.character,
+          generationCount: data.character._count?.generations ?? 0,
+        };
+        setCharacter(characterData);
         const urls: Record<string, string> = {};
         const images = data.character.images || [];
         const results = await Promise.allSettled(
@@ -112,6 +118,9 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
   }
   if (!character) return null;
 
+  const firstImageId = character.images[0]?.id;
+  const referenceImageUrl = firstImageId ? imageUrls[firstImageId] ?? null : null;
+
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
@@ -129,26 +138,12 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
           Back
         </button>
 
-        {/* Character info */}
-        <div className="mb-6">
-          <h1 className="text-[24px] font-bold text-white">{character.name}</h1>
-          <p className="text-[#81a0bb] text-sm mt-1">{character.description}</p>
-        </div>
-
-        {/* Reference Images */}
-        {character.images.length > 0 && (
-          <div className="flex gap-3 flex-wrap mb-6">
-            {character.images.map((img) => (
-              <div key={img.id} className="w-20 h-20 rounded-xl border border-white/[0.12] overflow-hidden bg-[#0a0a0a]">
-                {imageUrls[img.id] ? (
-                  <img src={imageUrls[img.id]} alt={img.filename} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px] text-white/30">...</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Character Passport */}
+        <CharacterPassport
+          character={character}
+          referenceImageUrl={referenceImageUrl}
+          onEdit={() => router.push(`/characters/${id}/edit`)}
+        />
 
         {/* Generate Scene Card */}
         <div className="rounded-2xl border border-white/[0.12] bg-[rgba(10,10,10,0.75)] backdrop-blur-sm p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
