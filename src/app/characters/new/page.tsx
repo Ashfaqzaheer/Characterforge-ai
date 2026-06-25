@@ -83,7 +83,11 @@ export default function NewCharacterPage() {
 
       const createData = await createRes.json();
       if (!createRes.ok) {
-        setErrors({ form: createData.error?.message || "Failed to create character." });
+        if (createData.error?.code === "CHARACTER_LIMIT_REACHED") {
+          setErrors({ form: "CHARACTER_LIMIT_REACHED" });
+        } else {
+          setErrors({ form: createData.error?.message || "Failed to create character." });
+        }
         return;
       }
 
@@ -157,7 +161,14 @@ export default function NewCharacterPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {errors.form && (
               <div role="alert" className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">
-                {errors.form}
+                {errors.form === "CHARACTER_LIMIT_REACHED" ? (
+                  <span>
+                    You&apos;ve reached the free limit of 3 characters.{" "}
+                    <a href="/dashboard" className="underline text-[#e8702a] hover:text-[#d2611f]">Buy credits</a> to create unlimited characters.
+                  </span>
+                ) : (
+                  errors.form
+                )}
               </div>
             )}
 

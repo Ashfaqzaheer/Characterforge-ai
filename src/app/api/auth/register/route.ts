@@ -77,6 +77,7 @@ export async function POST(request: Request) {
     }
 
     // Create DB User record with 10 credits and an INITIAL_GRANT transaction
+    // FREE_TIER_CREDITS — change here and in FREE_TIER constant in src/lib/free-tier.ts
     let dbUser;
     try {
       dbUser = await prisma.user.create({

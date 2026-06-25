@@ -9,6 +9,8 @@ import { SceneReferences } from "../components/scene-references";
 import { GalleryShowcase } from "../components/gallery-showcase";
 import { PricingSection } from "../components/pricing-section";
 
+const CONTACT_EMAIL = "hello@characterforge.ai";
+
 const BG_IMAGE_1 = "https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260609_195923_b0ba8ace-1d1d-4f2c-9a28-1ab84b330680.png&w=1280&q=85";
 const BG_IMAGE_2 = "https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260609_201152_bba90a12-bf12-459f-91f0-51f237dbaf3b.png&w=1280&q=85";
 
@@ -17,6 +19,7 @@ const NAV_ITEMS = [
   { label: "Scenes", href: "#scenes" },
   { label: "Gallery", href: "#gallery" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Contact", href: "#contact" },
 ];
 
 function scrollTo(id: string) {
@@ -33,6 +36,8 @@ export default function HomePage() {
   const [cursorPos, setCursorPos] = useState({ x: -999, y: -999 });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("characters");
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
@@ -52,7 +57,7 @@ export default function HomePage() {
   // Track active section on scroll
   useEffect(() => {
     function handleScroll() {
-      const sections = ["characters", "scenes", "gallery", "pricing"];
+      const sections = ["characters", "scenes", "gallery", "pricing", "contact"];
       for (const id of sections.reverse()) {
         const el = document.getElementById(id);
         if (el && el.getBoundingClientRect().top <= 200) {
@@ -187,6 +192,9 @@ export default function HomePage() {
           >
             {session ? "Go to Dashboard" : "Start Creating"}
           </button>
+          {!session && (
+            <p className="text-white/40 text-xs mt-2">Free — 10 generations included</p>
+          )}
         </div>
       </section>
 
@@ -225,6 +233,78 @@ export default function HomePage() {
       <SceneReferences />
       <GalleryShowcase />
       <PricingSection />
+
+      {/* Contact Sales Section */}
+      <section id="contact" className="py-24 px-6 bg-[#030303]">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4" style={{ letterSpacing: "-0.03em" }}>
+            Let&apos;s talk
+          </h2>
+          <p className="text-white/60 max-w-lg mx-auto leading-relaxed">
+            Need custom volumes, API access, or want to integrate CharacterForge
+            into your product? We&apos;d love to hear from you.
+          </p>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setContactSubmitting(true);
+              const form = e.target as HTMLFormElement;
+              const name = (form.elements.namedItem("name") as HTMLInputElement).value;
+              const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+              const company = (form.elements.namedItem("company") as HTMLInputElement).value;
+              const message = (form.elements.namedItem("message") as HTMLTextAreaElement).value;
+              const subject = `CharacterForge Enterprise Inquiry${company ? ` — ${company}` : ""}`;
+              const body = `Name: ${name}\nEmail: ${email}\nCompany: ${company || "N/A"}\n\n${message}`;
+              window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+              setContactSent(true);
+              setContactSubmitting(false);
+            }}
+            className="mt-10 space-y-4 text-left"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <input
+                name="name"
+                placeholder="Your name"
+                required
+                className="w-full px-4 py-3 text-sm text-white bg-white/[0.05] border border-white/10 rounded-xl placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+              />
+              <input
+                name="email"
+                type="email"
+                placeholder="Work email"
+                required
+                className="w-full px-4 py-3 text-sm text-white bg-white/[0.05] border border-white/10 rounded-xl placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+              />
+            </div>
+            <input
+              name="company"
+              placeholder="Company (optional)"
+              className="w-full px-4 py-3 text-sm text-white bg-white/[0.05] border border-white/10 rounded-xl placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+            />
+            <textarea
+              name="message"
+              placeholder="Tell us about your use case..."
+              rows={4}
+              required
+              className="w-full px-4 py-3 text-sm text-white bg-white/[0.05] border border-white/10 rounded-xl placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors resize-none"
+            />
+            <button
+              type="submit"
+              disabled={contactSubmitting}
+              className="w-full bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-7 py-3 rounded-full transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
+            >
+              {contactSubmitting ? "Sending..." : "Send Message"}
+            </button>
+          </form>
+
+          {contactSent && (
+            <div role="alert" className="mt-4 text-sm text-green-400">
+              Message sent! We&apos;ll get back to you within 24 hours.
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

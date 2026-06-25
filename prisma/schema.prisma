@@ -132,3 +132,13 @@ enum TransactionType {
   INITIAL_GRANT
   PURCHASE
 }
+
+model NotifyRequest {
+  id        String   @id @default(uuid())
+  email     String
+  source    String   @default("credits_waitlist")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("notify_requests")
+}

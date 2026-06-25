@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 import { apiFetch } from "../../lib/api-client";
 import { Navbar } from "../../components/navbar";
-import { CREDIT_PACKS, CreditPack } from "../../lib/credit-packs";
+import { CREDIT_PACKS } from "../../lib/credit-packs";
 
 interface CharacterSummary { id: string; name: string; description: string; createdAt: string; }
 
@@ -113,6 +113,76 @@ function BuyCreditsModal({ open, onClose, mockMode }: { open: boolean; onClose: 
   );
 }
 
+function NotifyMeModal({ open, onClose, userEmail }: { open: boolean; onClose: () => void; userEmail: string }) {
+  const [notifyEmail, setNotifyEmail] = useState(userEmail);
+  const [notifySubmitting, setNotifySubmitting] = useState(false);
+  const [notifySuccess, setNotifySuccess] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      setNotifyEmail(userEmail);
+      setNotifySuccess(false);
+    }
+  }, [open, userEmail]);
+
+  async function handleNotifySubmit() {
+    setNotifySubmitting(true);
+    try {
+      const res = await apiFetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: notifyEmail, source: "credits_waitlist" }),
+      });
+      if (res.ok) setNotifySuccess(true);
+    } finally {
+      setNotifySubmitting(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="depth-card p-8 max-w-sm w-full animate-in" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center space-y-4">
+          <div className="text-4xl mb-2">🚀</div>
+          <h3 className="text-white font-semibold text-lg">Credit purchases coming soon</h3>
+          <p className="text-white/60 text-sm leading-relaxed">
+            Paid credit packs are launching soon. Leave your email and we&apos;ll
+            notify you the moment they&apos;re available — plus get a bonus 10 credits
+            when we launch.
+          </p>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={notifyEmail}
+            onChange={(e) => setNotifyEmail(e.target.value)}
+            className="w-full px-4 py-3 text-sm text-white bg-white/[0.05] border border-white/10 rounded-[var(--radius-md)] placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+          />
+          <button
+            onClick={handleNotifySubmit}
+            disabled={notifySubmitting || notifySuccess}
+            className="w-full px-4 py-3 text-sm rounded-[var(--radius-full)] font-medium text-white transition-colors disabled:opacity-50"
+            style={{ backgroundColor: "#e8702a" }}
+          >
+            {notifySubmitting ? "Saving..." : "Notify Me"}
+          </button>
+          {notifySuccess && (
+            <p className="text-green-400 text-sm">You&apos;re on the list! We&apos;ll email you when credits launch.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { session, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -124,7 +194,9 @@ export default function DashboardPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [mockMode, setMockMode] = useState(false);
+  const [stripeEnabled, setStripeEnabled] = useState(false);
 
   const fetchBalance = useCallback(async () => {
     const res = await apiFetch("/api/credits");
@@ -143,11 +215,23 @@ export default function DashboardPage() {
         ]);
         if (charsRes.ok) { const data = await charsRes.json(); setCharacters(data.characters ?? []); }
         if (creditsRes.ok) { const data = await creditsRes.json(); setCreditBalance(data.balance ?? 0); }
-        if (statusRes.ok) { const data = await statusRes.json(); setMockMode(data.mockMode ?? false); }
+        if (statusRes.ok) {
+          const data = await statusRes.json();
+          setMockMode(data.mockMode ?? false);
+          setStripeEnabled(data.stripeEnabled ?? false);
+        }
       } finally { setLoading(false); }
     }
     fetchData();
   }, [session, authLoading, router]);
+
+  function handleCreditsButtonClick() {
+    if (stripeEnabled) {
+      setShowBuyModal(true);
+    } else {
+      setShowNotifyModal(true);
+    }
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -167,6 +251,8 @@ export default function DashboardPage() {
   if (authLoading || loading) {
     return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-[var(--text-muted)]">Loading...</p></div></>);
   }
+
+  const userEmail = session?.user?.email ?? "";
 
   return (
     <>
@@ -188,11 +274,11 @@ export default function DashboardPage() {
                 <span className="font-semibold text-white">{creditBalance}</span>
               </span>
               <button
-                onClick={() => setShowBuyModal(true)}
+                onClick={handleCreditsButtonClick}
                 className="px-3 py-1 text-xs font-medium rounded-[var(--radius-full)] text-white transition-colors"
                 style={{ backgroundColor: "#e8702a" }}
               >
-                Buy Credits
+                {stripeEnabled ? "Buy Credits" : "Get More Credits"}
               </button>
             </div>
             <Link href="/characters/new" className="btn-primary">
@@ -265,8 +351,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Buy Credits Modal */}
+        {/* Buy Credits Modal (Stripe enabled) */}
         <BuyCreditsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} mockMode={mockMode} />
+
+        {/* Notify Me Modal (Stripe disabled) */}
+        <NotifyMeModal open={showNotifyModal} onClose={() => setShowNotifyModal(false)} userEmail={userEmail} />
       </main>
     </>
   );

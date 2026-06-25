@@ -6,6 +6,8 @@ import {
   listCharacters,
   PromptRejectedError,
 } from "../../../services/character.service";
+import { FREE_TIER } from "../../../lib/free-tier";
+import { prisma } from "../../../lib/db";
 
 /**
  * GET /api/characters — List the authenticated user's characters.
@@ -59,6 +61,28 @@ export async function POST(request: NextRequest) {
       { error: { code: "VALIDATION_ERROR", message: validation.message } },
       { status: 400 }
     );
+  }
+
+  // Free tier character limit check (after validation so invalid input gets 400 first)
+  const isPaidUser =
+    user.creditBalance > FREE_TIER.INITIAL_CREDITS ||
+    (await prisma.purchaseRecord.count({ where: { userId: user.id } })) > 0;
+
+  if (!isPaidUser) {
+    const characterCount = await prisma.character.count({
+      where: { userId: user.id },
+    });
+    if (characterCount >= FREE_TIER.MAX_CHARACTERS) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "CHARACTER_LIMIT_REACHED",
+            message: `Free accounts can create up to ${FREE_TIER.MAX_CHARACTERS} characters. Buy credits to unlock unlimited characters.`,
+          },
+        },
+        { status: 403 }
+      );
+    }
   }
 
   try {

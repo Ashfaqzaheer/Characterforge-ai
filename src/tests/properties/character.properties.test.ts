@@ -13,6 +13,8 @@ const mockCharacterCreate = vi.fn();
 const mockCharacterFindMany = vi.fn();
 const mockCharacterFindUnique = vi.fn();
 const mockCharacterDelete = vi.fn();
+const mockCharacterCount = vi.fn();
+const mockPurchaseRecordCount = vi.fn();
 
 vi.mock("../../lib/db", () => ({
   prisma: {
@@ -21,6 +23,10 @@ vi.mock("../../lib/db", () => ({
       get findMany() { return mockCharacterFindMany; },
       get findUnique() { return mockCharacterFindUnique; },
       get delete() { return mockCharacterDelete; },
+      get count() { return mockCharacterCount; },
+    },
+    purchaseRecord: {
+      get count() { return mockPurchaseRecordCount; },
     },
   },
 }));
@@ -150,6 +156,9 @@ describe("Property 4: Character name and description length validation", () => {
 describe("Property 5: Character ownership association", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: free user with < MAX_CHARACTERS
+    mockPurchaseRecordCount.mockResolvedValue(0);
+    mockCharacterCount.mockResolvedValue(0);
   });
 
   it("created character is associated with the authenticated user and has a valid creation timestamp", async () => {
