@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../../lib/auth-context";
 import { apiFetch } from "../../../lib/api-client";
 import { Navbar } from "../../../components/navbar";
@@ -197,6 +198,19 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
           referenceImageUrl={referenceImageUrl}
           onEdit={() => router.push(`/characters/${id}/edit`)}
         />
+
+        {/* View Timeline link */}
+        <div className="flex justify-end mb-4">
+          <Link
+            href={`/characters/${id}/timeline`}
+            className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white border border-white/[0.08] hover:border-white/20 px-3 py-1.5 rounded-full transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            View Timeline
+          </Link>
+        </div>
 
         {/* Expression Generator */}
         <div className="rounded-2xl border border-white/[0.12] bg-[rgba(10,10,10,0.75)] backdrop-blur-sm p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] mb-6">
