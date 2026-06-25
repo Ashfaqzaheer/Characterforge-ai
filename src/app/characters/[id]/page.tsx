@@ -7,6 +7,15 @@ import { apiFetch } from "../../../lib/api-client";
 import { Navbar } from "../../../components/navbar";
 import { CharacterPassport } from "../../../components/character-passport";
 
+const EXPRESSIONS = [
+  { id: "happy",     label: "Happy",     emoji: "😊", prompt: "happy expression, bright smile, joyful eyes, cheerful" },
+  { id: "angry",     label: "Angry",     emoji: "😠", prompt: "angry expression, furrowed brows, intense glare, furious" },
+  { id: "sad",       label: "Sad",       emoji: "😢", prompt: "sad expression, downcast eyes, sorrowful look, melancholy" },
+  { id: "confident", label: "Confident", emoji: "😎", prompt: "confident expression, smirk, determined gaze, self-assured" },
+  { id: "shocked",   label: "Shocked",   emoji: "😱", prompt: "shocked expression, wide eyes, open mouth, stunned, disbelief" },
+  { id: "laughing",  label: "Laughing",  emoji: "😂", prompt: "laughing expression, eyes crinkled, mouth open laughing, delighted" },
+] as const;
+
 const SCENE_TEMPLATES = [
   "Walking in a park",
   "Running on a track",
@@ -56,6 +65,10 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [expressionGenerating, setExpressionGenerating] = useState<string | null>(null);
+  const [expressionImageUrl, setExpressionImageUrl] = useState<string | null>(null);
+  const [expressionError, setExpressionError] = useState("");
+  const [activeExpression, setActiveExpression] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
@@ -113,6 +126,45 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     finally { setGenerating(false); }
   }
 
+  async function handleExpression(expr: typeof EXPRESSIONS[number]) {
+    setExpressionError("");
+    setExpressionImageUrl(null);
+    setExpressionGenerating(expr.id);
+    setActiveExpression(expr.label);
+    try {
+      const res = await apiFetch("/api/generate", {
+        method: "POST",
+        body: JSON.stringify({ characterId: id, prompt: expr.prompt, aspectRatio: "1:1" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 402) setExpressionError("Insufficient credits.");
+        else if (res.status === 429) setExpressionError("Rate limited. Please wait.");
+        else setExpressionError(data.error?.message || "Generation failed.");
+        return;
+      }
+      if (data.generation?.imageKey) {
+        const urlRes = await apiFetch(`/api/images/${data.generation.imageKey}`);
+        if (urlRes.ok) {
+          const urlData = await urlRes.json();
+          setExpressionImageUrl(urlData.url);
+        }
+      }
+    } catch {
+      setExpressionError("Expression generation failed. Please try again.");
+    } finally {
+      setExpressionGenerating(null);
+    }
+  }
+
+  function handleExpressionDownload() {
+    if (!expressionImageUrl || !character) return;
+    const link = document.createElement("a");
+    link.href = expressionImageUrl;
+    link.download = `${character.name}-${activeExpression.toLowerCase()}.png`;
+    link.click();
+  }
+
   if (authLoading || loading) {
     return (<><Navbar /><div className="flex flex-1 items-center justify-center min-h-screen"><p className="text-[#81a0bb]/60">Loading...</p></div></>);
   }
@@ -120,6 +172,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
 
   const firstImageId = character.images[0]?.id;
   const referenceImageUrl = firstImageId ? imageUrls[firstImageId] ?? null : null;
+  const anyGenerating = generating || expressionGenerating !== null;
 
   return (
     <div className="min-h-screen bg-black">
@@ -144,6 +197,48 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
           referenceImageUrl={referenceImageUrl}
           onEdit={() => router.push(`/characters/${id}/edit`)}
         />
+
+        {/* Expression Generator */}
+        <div className="rounded-2xl border border-white/[0.12] bg-[rgba(10,10,10,0.75)] backdrop-blur-sm p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] mb-6">
+          <h2 className="text-[18px] font-semibold text-white mb-1">Expression Generator</h2>
+          <p className="text-[12px] text-white/40 mb-4">Generate this character with 6 different emotions. Each costs 1 credit.</p>
+
+          <div className="grid grid-cols-3 gap-3">
+            {EXPRESSIONS.map((expr) => (
+              <button
+                key={expr.id}
+                onClick={() => handleExpression(expr)}
+                disabled={anyGenerating}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all text-center ${
+                  expressionGenerating === expr.id
+                    ? "border-[#e8702a] bg-[#e8702a]/10 text-white"
+                    : "border-white/[0.12] bg-white/[0.02] text-white/70 hover:border-white/30 hover:bg-white/[0.05] hover:text-white"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <span className="text-2xl">{expressionGenerating === expr.id ? "⏳" : expr.emoji}</span>
+                <span className="text-[12px] font-medium leading-tight">
+                  {expressionGenerating === expr.id ? "Generating..." : expr.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {expressionError && (
+            <div className="mt-4 p-3 text-[13px] text-red-400 bg-red-900/15 border border-red-800/25 rounded-xl">{expressionError}</div>
+          )}
+
+          {expressionImageUrl && (
+            <div className="mt-5 rounded-xl border border-white/[0.12] overflow-hidden bg-[#0a0a0a] inline-block">
+              <img src={expressionImageUrl} alt={`${character.name} - ${activeExpression}`} className="max-w-full max-h-[300px]" />
+              <div className="p-3 flex items-center justify-between border-t border-white/[0.08]">
+                <span className="text-[12px] text-white/50">{activeExpression} expression</span>
+                <button onClick={handleExpressionDownload} className="text-[12px] text-[#2d628c] hover:text-white transition-colors">
+                  Download
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Generate Scene Card */}
         <div className="rounded-2xl border border-white/[0.12] bg-[rgba(10,10,10,0.75)] backdrop-blur-sm p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
@@ -216,7 +311,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
             <div>
               <button
                 type="submit"
-                disabled={generating}
+                disabled={anyGenerating}
                 className="h-[44px] px-8 rounded-full bg-gradient-to-r from-[#2d628c] to-[#1a4a6e] text-white text-[14px] font-semibold transition-all hover:shadow-[0_4px_20px_rgba(45,98,140,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100"
               >
                 {generating ? "Generating..." : "Generate"}
