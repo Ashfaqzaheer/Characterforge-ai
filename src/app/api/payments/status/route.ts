@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { STRIPE_ENABLED } from "../../../../lib/stripe";
+import { RAZORPAY_ENABLED } from "../../../../lib/razorpay";
 
 export async function GET() {
-  return NextResponse.json({ mockMode: !STRIPE_ENABLED, stripeEnabled: STRIPE_ENABLED });
+  return NextResponse.json({ razorpayEnabled: RAZORPAY_ENABLED });
 }

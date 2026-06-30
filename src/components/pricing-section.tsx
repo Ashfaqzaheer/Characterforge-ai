@@ -33,7 +33,7 @@ export function PricingSection() {
               <h3 className="text-white font-semibold text-lg mb-1">Free</h3>
               <p className="text-white/50 text-sm">{FREE_TIER.INITIAL_CREDITS} credits on signup</p>
               <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-white">$0</span>
+                <span className="text-4xl font-bold text-white">₹0</span>
               </div>
               <p className="text-white/40 text-xs mt-1">forever</p>
             </div>
@@ -68,10 +68,10 @@ export function PricingSection() {
               <h3 className="text-white font-semibold text-lg mb-1">{popularPack.name}</h3>
               <p className="text-white/50 text-sm">{popularPack.credits} credits</p>
               <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-white">${popularPack.priceUsd}</span>
+                <span className="text-4xl font-bold text-white">₹{popularPack.priceInr}</span>
                 <span className="text-white/50 text-sm">one-time</span>
               </div>
-              <p className="text-white/40 text-xs mt-1">${(popularPack.priceUsd / popularPack.credits).toFixed(2)} per credit</p>
+              <p className="text-white/40 text-xs mt-1">₹{(popularPack.priceInr / popularPack.credits).toFixed(2)} per credit</p>
             </div>
             <ul className="text-sm text-white/60 space-y-2 mb-6">
               <li>Unlimited characters</li>

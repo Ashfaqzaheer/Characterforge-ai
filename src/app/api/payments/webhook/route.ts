@@ -1,36 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe, STRIPE_ENABLED } from "../../../../lib/stripe";
+import crypto from "crypto";
 import { getPackById } from "../../../../lib/credit-packs";
 import { addCredits } from "../../../../services/credit.service";
 
+/**
+ * POST /api/payments/webhook — Razorpay webhook for payment.captured events.
+ * Verifies signature and adds credits as a fallback to client-side verification.
+ */
 export async function POST(request: NextRequest) {
-  if (!STRIPE_ENABLED || !stripe) {
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!webhookSecret) {
     return NextResponse.json({ received: true });
   }
 
   const body = await request.text();
-  const sig = request.headers.get("stripe-signature");
+  const signature = request.headers.get("x-razorpay-signature");
 
-  if (!sig) {
+  if (!signature) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch {
+  const expectedSignature = crypto
+    .createHmac("sha256", webhookSecret)
+    .update(body)
+    .digest("hex");
+
+  if (expectedSignature !== signature) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as any;
-    const userId = session.metadata?.userId;
-    const packId = session.metadata?.packId;
-    const paymentIntentId = session.payment_intent as string;
+  let event: any;
+  try { event = JSON.parse(body); } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (event.event === "payment.captured") {
+    const payment = event.payload?.payment?.entity;
+    if (!payment) return NextResponse.json({ received: true });
+
+    const notes = payment.notes || {};
+    const userId = notes.userId;
+    const packId = notes.packId;
+    const paymentId = payment.id;
     const pack = getPackById(packId ?? "");
 
-    if (userId && pack && paymentIntentId) {
-      await addCredits(userId, pack.credits, paymentIntentId, pack.id, session.amount_total ?? pack.priceCents);
+    if (userId && pack && paymentId) {
+      // addCredits is idempotent — won't add twice for same paymentId
+      await addCredits(userId, pack.credits, paymentId, pack.id, payment.amount ?? pack.pricePaise);
     }
   }
 

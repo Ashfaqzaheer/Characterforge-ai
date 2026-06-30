@@ -115,7 +115,7 @@ export class UserNotFoundError extends Error {
 }
 
 /**
- * Adds credits after a completed payment. Idempotent via stripePaymentIntentId uniqueness.
+ * Adds credits after a completed payment. Idempotent via payment ID uniqueness.
  */
 export async function addCredits(
   userId: string,

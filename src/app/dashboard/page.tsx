@@ -34,10 +34,10 @@ function PaymentResultBanner({ onCreditRefresh }: { onCreditRefresh: () => void 
     );
   }
 
-  if (payment === "cancelled") {
+  if (payment === "failed") {
     return (
-      <div role="status" className="mb-6 p-3 text-sm text-[var(--text-muted)] bg-white/5 border border-white/10 rounded-[var(--radius-md)] animate-in">
-        Payment cancelled — no charges were made.
+      <div role="status" className="mb-6 p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)] animate-in">
+        Payment failed — no charges were made. Please try again.
       </div>
     );
   }
@@ -45,8 +45,9 @@ function PaymentResultBanner({ onCreditRefresh }: { onCreditRefresh: () => void 
   return null;
 }
 
-function BuyCreditsModal({ open, onClose, mockMode }: { open: boolean; onClose: () => void; mockMode: boolean }) {
+function BuyCreditsModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const [buyingPack, setBuyingPack] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -57,16 +58,65 @@ function BuyCreditsModal({ open, onClose, mockMode }: { open: boolean; onClose: 
 
   async function handleBuy(packId: string) {
     setBuyingPack(packId);
+    setError("");
     try {
+      // Step 1: Create Razorpay order
       const res = await apiFetch("/api/payments/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ packId }),
       });
       const data = await res.json();
-      if (res.ok && data.url) {
-        window.location.href = data.url;
+      if (!res.ok) {
+        setError(data.error?.message || "Failed to create order.");
+        return;
       }
+
+      // Step 2: Open Razorpay Checkout
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "CharacterForge AI",
+        description: `${data.credits} Credits`,
+        order_id: data.orderId,
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          // Step 3: Verify payment on backend
+          try {
+            const verifyRes = await apiFetch("/api/payments/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                packId,
+              }),
+            });
+            if (verifyRes.ok) {
+              onSuccess();
+              onClose();
+            } else {
+              setError("Payment verification failed. Contact support if charged.");
+            }
+          } catch {
+            setError("Verification failed. Contact support if charged.");
+          }
+        },
+        theme: { color: "#e8702a" },
+        modal: {
+          ondismiss: () => { setBuyingPack(null); },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", () => {
+        setError("Payment failed. Please try again.");
+        setBuyingPack(null);
+      });
+      rzp.open();
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setBuyingPack(null);
     }
@@ -79,12 +129,10 @@ function BuyCreditsModal({ open, onClose, mockMode }: { open: boolean; onClose: 
       <div className="depth-card p-8 max-w-lg w-full animate-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Buy Credits</h2>
-          {mockMode && (
-            <span className="text-xs px-2 py-1 rounded-[var(--radius-full)] bg-amber-900/30 border border-amber-800/40 text-amber-400">
-              🧪 Mock mode
-            </span>
-          )}
         </div>
+        {error && (
+          <div className="mb-4 p-3 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded-[var(--radius-md)]">{error}</div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {CREDIT_PACKS.map((pack) => (
             <div key={pack.id} className="glass-card p-5 flex flex-col items-center text-center relative">
@@ -96,7 +144,7 @@ function BuyCreditsModal({ open, onClose, mockMode }: { open: boolean; onClose: 
               <p className="text-white font-semibold mt-2">{pack.name}</p>
               <p className="text-2xl font-bold text-white mt-1">{pack.credits}</p>
               <p className="text-xs text-[var(--text-muted)] mb-4">credits</p>
-              <p className="text-sm text-[var(--text-secondary)] mb-4">${pack.priceUsd}</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-4">₹{pack.priceInr}</p>
               <button
                 onClick={() => handleBuy(pack.id)}
                 disabled={buyingPack !== null}
@@ -107,76 +155,6 @@ function BuyCreditsModal({ open, onClose, mockMode }: { open: boolean; onClose: 
               </button>
             </div>
           ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function NotifyMeModal({ open, onClose, userEmail }: { open: boolean; onClose: () => void; userEmail: string }) {
-  const [notifyEmail, setNotifyEmail] = useState(userEmail);
-  const [notifySubmitting, setNotifySubmitting] = useState(false);
-  const [notifySuccess, setNotifySuccess] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (open) {
-      setNotifyEmail(userEmail);
-      setNotifySuccess(false);
-    }
-  }, [open, userEmail]);
-
-  async function handleNotifySubmit() {
-    setNotifySubmitting(true);
-    try {
-      const res = await apiFetch("/api/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: notifyEmail, source: "credits_waitlist" }),
-      });
-      if (res.ok) setNotifySuccess(true);
-    } finally {
-      setNotifySubmitting(false);
-    }
-  }
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="depth-card p-8 max-w-sm w-full animate-in" onClick={(e) => e.stopPropagation()}>
-        <div className="text-center space-y-4">
-          <div className="text-4xl mb-2">🚀</div>
-          <h3 className="text-white font-semibold text-lg">Credit purchases coming soon</h3>
-          <p className="text-white/60 text-sm leading-relaxed">
-            Paid credit packs are launching soon. Leave your email and we&apos;ll
-            notify you the moment they&apos;re available — plus get a bonus 10 credits
-            when we launch.
-          </p>
-          <input
-            type="email"
-            placeholder="your@email.com"
-            value={notifyEmail}
-            onChange={(e) => setNotifyEmail(e.target.value)}
-            className="w-full px-4 py-3 text-sm text-white bg-white/[0.05] border border-white/10 rounded-[var(--radius-md)] placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
-          />
-          <button
-            onClick={handleNotifySubmit}
-            disabled={notifySubmitting || notifySuccess}
-            className="w-full px-4 py-3 text-sm rounded-[var(--radius-full)] font-medium text-white transition-colors disabled:opacity-50"
-            style={{ backgroundColor: "#e8702a" }}
-          >
-            {notifySubmitting ? "Saving..." : "Notify Me"}
-          </button>
-          {notifySuccess && (
-            <p className="text-green-400 text-sm">You&apos;re on the list! We&apos;ll email you when credits launch.</p>
-          )}
         </div>
       </div>
     </div>
@@ -194,9 +172,7 @@ export default function DashboardPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [showBuyModal, setShowBuyModal] = useState(false);
-  const [showNotifyModal, setShowNotifyModal] = useState(false);
-  const [mockMode, setMockMode] = useState(false);
-  const [stripeEnabled, setStripeEnabled] = useState(false);
+  const [razorpayEnabled, setRazorpayEnabled] = useState(false);
 
   const fetchBalance = useCallback(async () => {
     const res = await apiFetch("/api/credits");
@@ -217,20 +193,17 @@ export default function DashboardPage() {
         if (creditsRes.ok) { const data = await creditsRes.json(); setCreditBalance(data.balance ?? 0); }
         if (statusRes.ok) {
           const data = await statusRes.json();
-          setMockMode(data.mockMode ?? false);
-          setStripeEnabled(data.stripeEnabled ?? false);
+          setRazorpayEnabled(data.razorpayEnabled ?? false);
         }
       } finally { setLoading(false); }
     }
     fetchData();
   }, [session, authLoading, router]);
 
-  function handleCreditsButtonClick() {
-    if (stripeEnabled) {
-      setShowBuyModal(true);
-    } else {
-      setShowNotifyModal(true);
-    }
+  function handlePaymentSuccess() {
+    fetchBalance();
+    setSuccessMsg("Credits added successfully!");
+    setTimeout(() => setSuccessMsg(""), 3000);
   }
 
   async function handleDelete() {
@@ -252,8 +225,6 @@ export default function DashboardPage() {
     return (<><Navbar /><div className="flex flex-1 items-center justify-center"><p className="text-[var(--text-muted)]">Loading...</p></div></>);
   }
 
-  const userEmail = session?.user?.email ?? "";
-
   return (
     <>
       <Navbar />
@@ -273,13 +244,15 @@ export default function DashboardPage() {
                 <span className="text-[var(--text-muted)]">Credits:</span>{" "}
                 <span className="font-semibold text-white">{creditBalance}</span>
               </span>
-              <button
-                onClick={handleCreditsButtonClick}
-                className="px-3 py-1 text-xs font-medium rounded-[var(--radius-full)] text-white transition-colors"
-                style={{ backgroundColor: "#e8702a" }}
-              >
-                {stripeEnabled ? "Buy Credits" : "Get More Credits"}
-              </button>
+              {razorpayEnabled && (
+                <button
+                  onClick={() => setShowBuyModal(true)}
+                  className="px-3 py-1 text-xs font-medium rounded-[var(--radius-full)] text-white transition-colors"
+                  style={{ backgroundColor: "#e8702a" }}
+                >
+                  Buy Credits
+                </button>
+              )}
             </div>
             <Link href="/characters/new" className="btn-primary">
               New Character
@@ -351,11 +324,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Buy Credits Modal (Stripe enabled) */}
-        <BuyCreditsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} mockMode={mockMode} />
-
-        {/* Notify Me Modal (Stripe disabled) */}
-        <NotifyMeModal open={showNotifyModal} onClose={() => setShowNotifyModal(false)} userEmail={userEmail} />
+        {/* Buy Credits Modal */}
+        <BuyCreditsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} onSuccess={handlePaymentSuccess} />
       </main>
     </>
   );
